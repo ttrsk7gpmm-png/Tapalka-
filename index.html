@@ -3,800 +3,750 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Granny Horror Mobile</title>
+    <title>Granny 3D Horror</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
-        
-        body {
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-            touch-action: manipulation;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            overflow: hidden; 
+            touch-action: none;
             position: fixed;
-        }
-        
-        #gameContainer {
-            position: relative;
             width: 100vw;
             height: 100vh;
-            max-width: 500px;
-            max-height: 900px;
         }
+        canvas { display: block; }
         
-        #gameCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* Стартовый экран */
         #startScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.95);
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 10;
+            z-index: 100;
             color: white;
-            text-align: center;
-            padding: 20px;
+            font-family: Arial;
         }
-        
-        #startScreen h1 {
-            font-size: clamp(36px, 8vw, 60px);
-            color: #ff0000;
-            text-shadow: 0 0 20px red;
-            margin-bottom: 15px;
+        #startScreen h1 { 
+            color: #f00; 
+            font-size: 50px; 
+            text-shadow: 0 0 30px red; 
+            margin-bottom: 20px; 
         }
-        
-        #startScreen .subtitle {
-            font-size: clamp(14px, 3vw, 20px);
-            color: #aaa;
-            margin-bottom: 30px;
-        }
-        
-        #startScreen .btn {
+        #startScreen button {
             background: #c00;
             color: white;
             border: none;
-            padding: 15px 50px;
-            font-size: 22px;
+            padding: 15px 60px;
+            font-size: 24px;
             border-radius: 10px;
-            cursor: pointer;
-            animation: pulse 1.5s infinite;
-            margin: 10px;
-        }
-        
-        @keyframes pulse {
-            0%,100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        #startScreen .hint {
-            font-size: 13px;
-            color: #888;
             margin-top: 20px;
+        }
+        #startScreen .info {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #aaa;
             line-height: 1.8;
         }
         
-        /* Джойстик */
-        #joystickZone {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            width: 140px;
-            height: 140px;
-            z-index: 5;
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            z-index: 50;
+            pointer-events: none;
         }
-        
-        #joystickBase {
-            position: absolute;
-            width: 140px;
-            height: 140px;
-            background: rgba(255,255,255,0.12);
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+        #joystickArea {
+            width: 130px;
+            height: 130px;
+            pointer-events: auto;
         }
-        
-        #joystickThumb {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            background: rgba(255,255,255,0.4);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            transition: none;
-        }
-        
-        /* Кнопки действий */
-        .actionBtns {
-            position: absolute;
-            bottom: 40px;
-            right: 20px;
-            z-index: 5;
+        #buttons {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
+            pointer-events: auto;
         }
-        
-        .actionBtn {
-            width: 65px;
-            height: 65px;
+        #buttons button {
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             border: 2px solid rgba(255,255,255,0.4);
             background: rgba(255,255,255,0.15);
             color: white;
-            font-size: 13px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        #btnRun {
-            background: rgba(255,100,0,0.3);
-            border-color: rgba(255,150,0,0.6);
-        }
-        
-        #btnCrouch {
-            background: rgba(0,100,255,0.3);
-            border-color: rgba(100,150,255,0.6);
-        }
-        
-        #btnInteract {
-            background: rgba(255,255,0,0.3);
-            border-color: rgba(255,255,100,0.6);
             font-size: 11px;
+            font-weight: bold;
         }
+        #btnRun { background: rgba(255,100,0,0.4); }
+        #btnCrouch { background: rgba(0,100,255,0.4); }
+        #btnInteract { background: rgba(255,255,0,0.4); }
         
-        .actionBtn:active {
-            background: rgba(255,255,255,0.4);
-            transform: scale(0.9);
-        }
-        
-        /* Сообщение */
         #message {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 20;
-            text-align: center;
-            display: none;
-            pointer-events: none;
-        }
-        
-        #message .big {
-            font-size: clamp(30px, 6vw, 50px);
-            font-weight: bold;
-        }
-        
-        #message .small {
-            font-size: clamp(14px, 3vw, 20px);
             color: white;
+            font-family: Arial;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            font-size: 30px;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        
-        <!-- Стартовый экран -->
-        <div id="startScreen">
-            <h1>GRANNY HORROR</h1>
-            <p class="subtitle">Выберитесь из дома...</p>
-            <button class="btn" onclick="startGame()">▶ ИГРАТЬ</button>
-            <div class="hint">
-                🕹 Джойстик — движение<br>
-                🟠 RUN — бег (шумно)<br>
-                🔵 CROUCH — присесть (тихо)<br>
-                🟡 РУКА — взять ключ / выход<br>
-                <br>
-                ⚠ Найди ключ и беги к двери!<br>
-                👁 Берегись красных глаз...
-            </div>
-        </div>
-        
-        <!-- Джойстик -->
-        <div id="joystickZone">
-            <div id="joystickBase"></div>
-            <div id="joystickThumb"></div>
-        </div>
-        
-        <!-- Кнопки -->
-        <div class="actionBtns">
-            <button class="actionBtn" id="btnRun">RUN</button>
-            <button class="actionBtn" id="btnCrouch">CROUCH</button>
-            <button class="actionBtn" id="btnInteract">👋</button>
-        </div>
-        
-        <!-- Сообщение -->
-        <div id="message">
-            <div class="big" id="msgBig"></div>
-            <div class="small" id="msgSmall"></div>
+    <div id="startScreen">
+        <h1>GRANNY 3D</h1>
+        <p style="font-size:18px;">Выберитесь из дома...</p>
+        <button onclick="startGame()">▶ ИГРАТЬ</button>
+        <div class="info">
+            🕹 Джойстик — ходьба<br>
+            👆 Проведи по экрану — смотреть<br>
+            🟠 RUN — бежать<br>
+            🔵 CROUCH — присесть<br>
+            🟡 ✋ — взять ключ / выход
         </div>
     </div>
+    
+    <div id="controls">
+        <div id="joystickArea">
+            <canvas id="joystickCanvas" width="130" height="130"></canvas>
+        </div>
+        <div id="buttons">
+            <button id="btnRun">RUN</button>
+            <button id="btnCrouch">CROUCH</button>
+            <button id="btnInteract">✋</button>
+        </div>
+    </div>
+    
+    <div id="message">
+        <div id="msgBig"></div>
+        <div id="msgSmall" style="font-size:16px;margin-top:10px;"></div>
+    </div>
 
-    <script>
-        // ==================== ХОЛСТ ====================
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        function resizeCanvas() {
-            const container = document.getElementById('gameContainer');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
         
-        // ==================== ИГРОВЫЕ ПЕРЕМЕННЫЕ ====================
-        let gameState = 'start'; // start, playing, caught, win
-        let player, monster, walls, furniture, key, door, noise;
+        // ==================== НАСТРОЙКИ ====================
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x0a0a0a, 5, 25);
+        
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 50);
+        camera.position.set(5, 1.6, 5);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.5;
+        document.body.appendChild(renderer.domElement);
+        
+        // Свет
+        const ambientLight = new THREE.AmbientLight(0x111122, 0.3);
+        scene.add(ambientLight);
+        
+        const flashlight = new THREE.SpotLight(0xffeedd, 8, 15, Math.PI/6, 0.3, 0.5);
+        flashlight.position.set(0, 0, 0);
+        flashlight.castShadow = true;
+        flashlight.shadow.mapSize.width = 512;
+        flashlight.shadow.mapSize.height = 512;
+        scene.add(flashlight);
+        
+        // ==================== СОСТОЯНИЕ ИГРЫ ====================
+        let gameState = 'start';
+        let hasKey = false;
+        let noise = 0;
+        let runPressed = false;
+        let crouchPressed = false;
+        let playerVelocity = new THREE.Vector3();
+        let playerSpeed = 3;
+        const playerHeight = 1.7;
+        const playerRadius = 0.4;
         
         // Джойстик
         let joystickActive = false;
-        let joystickDX = 0;
-        let joystickDY = 0;
-        let joystickId = null;
+        let joystickDX = 0, joystickDY = 0;
+        let touchLookDX = 0, touchLookDY = 0;
+        let isLooking = false;
+        let yaw = 0, pitch = 0;
         
-        // Кнопки
-        let runPressed = false;
-        let crouchPressed = false;
+        // ==================== СОЗДАНИЕ ДОМА ====================
+        const walls = [];
+        const furnitureList = [];
         
-        // ==================== КЛАССЫ ====================
-        class Player {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.w = 16;
-                this.h = 28;
-                this.speed = 2.5;
-                this.runSpeed = 4.5;
-                this.crouchSpeed = 1.3;
-                this.hasKey = false;
-                this.crouching = false;
-            }
-            
-            getRect() {
-                return {
-                    x: this.x - this.w/2,
-                    y: this.y - (this.crouching ? 14 : this.h)/2,
-                    w: this.w,
-                    h: this.crouching ? 14 : this.h
-                };
-            }
-            
-            move() {
-                let dx = joystickDX;
-                let dy = joystickDY;
-                
-                if (!joystickActive || (dx === 0 && dy === 0)) {
-                    noise = Math.max(0, noise - 0.5);
-                    return;
-                }
-                
-                let speed = this.speed;
-                noise = Math.max(0, noise - 0.3);
-                
-                if (runPressed) {
-                    speed = this.runSpeed;
-                    noise = Math.min(100, noise + 2.5);
-                }
-                
-                if (crouchPressed) {
-                    this.crouching = true;
-                    speed = this.crouchSpeed;
-                    noise = Math.max(0, noise - 0.5);
-                } else {
-                    this.crouching = false;
-                }
-                
-                // Нормализация
-                let mag = Math.sqrt(dx*dx + dy*dy);
-                if (mag > 1) {
-                    dx /= mag;
-                    dy /= mag;
-                }
-                
-                let newX = this.x + dx * speed;
-                let newY = this.y + dy * speed;
-                
-                let testRect = this.getRect();
-                testRect.x = newX - this.w/2;
-                if (!this.collides(testRect)) this.x = newX;
-                
-                testRect = this.getRect();
-                testRect.y = newY - (this.crouching ? 14 : this.h)/2;
-                if (!this.collides(testRect)) this.y = newY;
-                
-                this.x = Math.max(25, Math.min(canvas.width - 25, this.x));
-                this.y = Math.max(25, Math.min(canvas.height - 25, this.y));
-            }
-            
-            collides(rect) {
-                for (let w of walls) if (this.overlap(rect, w)) return true;
-                for (let f of furniture) if (this.overlap(rect, f)) return true;
-                return false;
-            }
-            
-            overlap(a, b) {
-                return a.x < b.x + b.w && a.x + a.w > b.x &&
-                       a.y < b.y + b.h && a.y + a.h > b.y;
-            }
+        function createWall(x, z, w, d, h = 3) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x4a3020, 
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x + w/2, h/2, z + d/2);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            walls.push({
+                x: x, z: z, w: w, d: d,
+                mesh: mesh
+            });
         }
         
-        class Monster {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.w = 26;
-                this.h = 38;
-                this.speed = 2;
-                this.chaseSpeed = 4;
-                this.state = 'patrol';
-                this.patrolPoints = [];
-                this.patrolIndex = 0;
-                this.searchTimer = 0;
-                this.searchTarget = null;
-                this.visionRange = 300;
-                this.hearingRange = 180;
-                this.eyeGlow = 0;
-            }
-            
-            getRect() {
-                return {x: this.x-this.w/2, y: this.y-this.h/2, w: this.w, h: this.h};
-            }
-            
-            update() {
-                this.eyeGlow += 0.1;
-                
-                let dx = player.x - this.x;
-                let dy = player.y - this.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (this.overlap(this.getRect(), player.getRect())) {
-                    gameState = 'caught';
-                    return;
-                }
-                
-                if (this.state === 'chase') {
-                    this.moveToward(player.x, player.y);
-                    if (dist > this.visionRange) {
-                        this.state = 'search';
-                        this.searchTarget = {x: player.x, y: player.y};
-                        this.searchTimer = 150;
-                    }
-                } else if (this.state === 'search') {
-                    if (this.searchTimer > 0 && this.searchTarget) {
-                        this.searchTimer--;
-                        if (this.moveToward(this.searchTarget.x, this.searchTarget.y)) {
-                            this.searchTarget = null;
-                        }
-                    } else {
-                        this.state = 'patrol';
-                    }
-                } else {
-                    if (this.patrolPoints.length > 0) {
-                        let t = this.patrolPoints[this.patrolIndex];
-                        if (this.moveToward(t.x, t.y)) {
-                            this.patrolIndex = (this.patrolIndex + 1) % this.patrolPoints.length;
-                        }
-                    }
-                }
-                
-                if (dist < this.visionRange && this.hasLineOfSight(player.x, player.y)) {
-                    this.state = 'chase';
-                }
-                
-                if (noise > 50 && dist < this.hearingRange) {
-                    this.state = 'chase';
-                }
-            }
-            
-            moveToward(tx, ty) {
-                let dx = tx - this.x;
-                let dy = ty - this.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 4) return true;
-                
-                let speed = this.state === 'chase' ? this.chaseSpeed : this.speed;
-                dx = dx/dist * speed;
-                dy = dy/dist * speed;
-                
-                let testRect = this.getRect();
-                testRect.x = this.x + dx - this.w/2;
-                if (!this.collides(testRect)) this.x += dx;
-                
-                testRect = this.getRect();
-                testRect.y = this.y + dy - this.h/2;
-                if (!this.collides(testRect)) this.y += dy;
-                
-                return false;
-            }
-            
-            collides(r) {
-                for (let w of walls) if (this.overlap(r, w)) return true;
-                for (let f of furniture) if (this.overlap(r, f)) return true;
-                return false;
-            }
-            
-            hasLineOfSight(tx, ty) {
-                let dx = tx - this.x, dy = ty - this.y;
-                let dist = Math.sqrt(dx*dx+dy*dy);
-                let steps = Math.floor(dist / 8);
-                for (let i = 1; i < steps; i++) {
-                    let cx = this.x + dx*(i/steps), cy = this.y + dy*(i/steps);
-                    let cr = {x: cx-2, y: cy-2, w: 4, h: 4};
-                    for (let w of walls) if (this.overlap(cr, w)) return false;
-                }
-                return true;
-            }
-            
-            overlap(a, b) {
-                return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
-            }
+        function createFurniture(x, z, w, h, d, color = 0x5c3a1e) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x + w/2, h/2, z + d/2);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            furnitureList.push({
+                x: x, z: z, w: w, d: d,
+                mesh: mesh
+            });
+            return mesh;
         }
         
-        // ==================== УРОВЕНЬ ====================
-        function createLevel() {
-            const W = canvas.width, H = canvas.height;
-            const m = 30; // отступ
+        function buildHouse() {
+            // Пол
+            const floorGeo = new THREE.PlaneGeometry(16, 14);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x2a1a0a, 
+                roughness: 0.9,
+                side: THREE.DoubleSide
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI/2;
+            floor.position.set(8, 0, 7);
+            floor.receiveShadow = true;
+            scene.add(floor);
             
-            walls = [
-                {x: m, y: m, w: 15, h: H-m*2},
-                {x: W-m-15, y: m, w: 15, h: H-m*2},
-                {x: m, y: m, w: W-m*2, h: 15},
-                {x: m, y: H-m-15, w: W-m*2, h: 15},
-                // Перегородки
-                {x: m, y: H*0.48, w: W*0.35, h: 15},
-                {x: W*0.45, y: H*0.48, w: W*0.55-m, h: 15},
-                {x: W*0.5, y: m+15, w: 15, h: H*0.48-m-15},
-                {x: W*0.5, y: H*0.48+15, w: 15, h: H*0.52-m-30},
-            ];
+            // Потолок
+            const ceiling = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 }));
+            ceiling.rotation.x = Math.PI/2;
+            ceiling.position.set(8, 3, 7);
+            scene.add(ceiling);
             
-            door = {x: W-35, y: H*0.42, w: 20, h: H*0.1};
+            // Внешние стены
+            createWall(0, 0, 16, 0.2);      // север
+            createWall(0, 13.8, 16, 0.2);    // юг
+            createWall(0, 0, 0.2, 14);       // запад
+            createWall(15.8, 0, 0.2, 14);    // восток
             
-            furniture = [
-                {x: m+30, y: m+30, w: W*0.12, h: 30},
-                {x: W*0.3, y: m+30, w: 30, h: W*0.1},
-                {x: W*0.6, y: m+30, w: W*0.1, h: W*0.1},
-                {x: m+30, y: H*0.6, w: W*0.15, h: 35},
-                {x: W*0.55, y: H*0.6, w: W*0.15, h: 40},
-                {x: W*0.7, y: H*0.35, w: 35, h: W*0.12},
-            ];
+            // Внутренние стены
+            createWall(0, 7, 7, 0.2);        // перегородка левая
+            createWall(8, 7, 8, 0.2);        // перегородка правая
+            createWall(8, 0, 0.2, 7);        // вертикальная верх
+            createWall(8, 7.2, 0.2, 6.8);    // вертикальная низ
             
-            let f = furniture[Math.floor(Math.random()*furniture.length)];
-            key = {
-                x: f.x + f.w/2 + (Math.random()-0.5)*f.w,
-                y: f.y + f.h/2 + (Math.random()-0.5)*f.h,
-                collected: false,
-                size: 7
+            // Мебель
+            createFurniture(1, 1.5, 1.5, 0.8, 0.8, 0x6b4423);  // стол
+            createFurniture(3, 1, 0.5, 1.5, 1.2, 0x5c3a1e);    // шкаф
+            createFurniture(9, 2, 1, 0.7, 1, 0x7b5533);        // тумба
+            createFurniture(1.5, 9, 2, 0.5, 1.5, 0x4a3020);    // кровать
+            createFurniture(9, 9, 1.8, 0.6, 1, 0x6b5030);      // диван
+            createFurniture(5, 9, 0.7, 1.2, 0.7, 0x555555);    // холодильник
+            createFurniture(12, 4, 0.6, 1.8, 1.2, 0x5c3a1e);   // книжный шкаф
+            
+            // Дверь выхода
+            const doorGeo = new THREE.BoxGeometry(1, 2, 0.1);
+            const doorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x006600,
+                emissive: 0x003300,
+                emissiveIntensity: 0.5
+            });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(15.9, 1, 10);
+            scene.add(door);
+            door.userData = { isExit: true };
+            
+            // Ключ (жёлтый шарик)
+            const keyGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const keyMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffd700, 
+                emissive: 0xffaa00,
+                emissiveIntensity: 0.8,
+                roughness: 0.3
+            });
+            window.keyMesh = new THREE.Mesh(keyGeo, keyMat);
+            window.keyMesh.position.set(1.75, 0.7, 2);
+            scene.add(window.keyMesh);
+            window.keyMesh.userData = { isKey: true };
+            
+            // Ковёр для ориентации
+            const rugGeo = new THREE.PlaneGeometry(2, 1);
+            const rugMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 1, side: THREE.DoubleSide });
+            const rug = new THREE.Mesh(rugGeo, rugMat);
+            rug.rotation.x = -Math.PI/2;
+            rug.position.set(8, 0.01, 3.5);
+            scene.add(rug);
+        }
+        
+        // ==================== МОНСТР ====================
+        let monster;
+        let monsterState = 'patrol';
+        let patrolIndex = 0;
+        const patrolPoints = [
+            new THREE.Vector3(3, 0, 3),
+            new THREE.Vector3(10, 0, 3),
+            new THREE.Vector3(10, 0, 10),
+            new THREE.Vector3(3, 0, 10),
+            new THREE.Vector3(6, 0, 6),
+        ];
+        let searchTarget = null;
+        let searchTimer = 0;
+        
+        function createMonster() {
+            const group = new THREE.Group();
+            
+            // Тело
+            const bodyGeo = new THREE.CylinderGeometry(0.35, 0.4, 1.8, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.9;
+            body.castShadow = true;
+            group.add(body);
+            
+            // Голова
+            const headGeo = new THREE.SphereGeometry(0.3, 8, 8);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2;
+            head.castShadow = true;
+            group.add(head);
+            
+            // Глаза (светящиеся красные)
+            const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMat = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000, 
+                emissive: 0xff0000,
+                emissiveIntensity: 2,
+                roughness: 0.2
+            });
+            
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.12, 2.05, -0.25);
+            group.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.12, 2.05, -0.25);
+            group.add(rightEye);
+            
+            group.position.set(10, 0, 5);
+            scene.add(group);
+            
+            return {
+                mesh: group,
+                leftEye, rightEye,
+                speed: 2.5,
+                chaseSpeed: 4.5
             };
         }
         
-        function init() {
-            player = new Player(canvas.width*0.35, canvas.height*0.55);
-            monster = new Monster(canvas.width*0.65, canvas.height*0.5);
-            noise = 0;
-            createLevel();
-            monster.patrolPoints = [
-                {x: canvas.width*0.2, y: canvas.height*0.25},
-                {x: canvas.width*0.4, y: canvas.height*0.2},
-                {x: canvas.width*0.6, y: canvas.height*0.35},
-                {x: canvas.width*0.75, y: canvas.height*0.6},
-                {x: canvas.width*0.3, y: canvas.height*0.7},
-            ];
-        }
-        
-        // ==================== ОТРИСОВКА ====================
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Пол
-            for (let x = 30; x < canvas.width-30; x += 35) {
-                for (let y = 30; y < canvas.height-30; y += 35) {
-                    ctx.fillStyle = ((Math.floor(x/35)+Math.floor(y/35))%2===0) ? '#2a2218' : '#1f1a12';
-                    ctx.fillRect(x, y, 35, 35);
-                }
-            }
-            
+        function checkCollision(x, z, radius = playerRadius) {
             // Стены
             for (let w of walls) {
-                ctx.fillStyle = '#3a2718';
-                ctx.fillRect(w.x, w.y, w.w, w.h);
-                ctx.strokeStyle = '#1a0f07';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(w.x, w.y, w.w, w.h);
+                const closestX = Math.max(w.x, Math.min(x, w.x + w.w));
+                const closestZ = Math.max(w.z, Math.min(z, w.z + w.d));
+                const dx = x - closestX;
+                const dz = z - closestZ;
+                if (Math.sqrt(dx*dx + dz*dz) < radius) return true;
             }
-            
             // Мебель
-            for (let f of furniture) {
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillRect(f.x+3, f.y+3, f.w, f.h);
-                ctx.fillStyle = '#5c3a1e';
-                ctx.fillRect(f.x, f.y, f.w, f.h);
-                ctx.strokeStyle = '#2a1506';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(f.x, f.y, f.w, f.h);
+            for (let f of furnitureList) {
+                const closestX = Math.max(f.x, Math.min(x, f.x + f.w));
+                const closestZ = Math.max(f.z, Math.min(z, f.z + f.d));
+                const dx = x - closestX;
+                const dz = z - closestZ;
+                if (Math.sqrt(dx*dx + dz*dz) < radius + 0.1) return true;
             }
-            
-            // Дверь
-            ctx.fillStyle = player.hasKey ? '#0a0' : '#6b0000';
-            ctx.fillRect(door.x, door.y, door.w, door.h);
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(door.x, door.y, door.w, door.h);
-            ctx.fillStyle = '#fff';
-            ctx.font = `${Math.max(10, canvas.width/50)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText('EXIT', door.x+door.w/2, door.y-4);
-            
-            // Ключ
-            if (!key.collected) {
-                let glow = Math.sin(Date.now()/300)*0.3+0.7;
-                ctx.fillStyle = `rgba(255,255,0,${glow*0.5})`;
-                ctx.beginPath();
-                ctx.arc(key.x, key.y, key.size+7, 0, Math.PI*2);
-                ctx.fill();
-                ctx.fillStyle = '#ffd700';
-                ctx.beginPath();
-                ctx.arc(key.x, key.y, key.size, 0, Math.PI*2);
-                ctx.fill();
-            }
-            
-            // Монстр
-            let mx = monster.x, my = monster.y;
-            ctx.fillStyle = '#1a1a1a';
-            ctx.beginPath();
-            ctx.ellipse(mx, my, 13, 19, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.fillStyle = '#222';
-            ctx.beginPath();
-            ctx.arc(mx, my-21, 12, 0, Math.PI*2);
-            ctx.fill();
-            
-            let glow = Math.abs(Math.sin(monster.eyeGlow))*0.5+0.5;
-            ctx.fillStyle = `rgba(255,0,0,${glow*0.5})`;
-            ctx.beginPath(); ctx.arc(mx-5, my-25, 8, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(mx+5, my-25, 8, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#f00';
-            ctx.beginPath(); ctx.arc(mx-5, my-25, 5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(mx+5, my-25, 5, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(mx-5, my-25, 2, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(mx+5, my-25, 2, 0, Math.PI*2); ctx.fill();
-            
-            // Игрок
-            let pr = player.getRect();
-            ctx.fillStyle = '#36c';
-            ctx.fillRect(pr.x, pr.y, pr.w, pr.h);
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
-            
-            // Темнота
-            let grad = ctx.createRadialGradient(player.x, player.y, 30, player.x, player.y, 220);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(0.35, 'rgba(0,0,0,0.1)');
-            grad.addColorStop(0.7, 'rgba(0,0,0,0.5)');
-            grad.addColorStop(1, 'rgba(0,0,0,0.92)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // HUD
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(8, 8, canvas.width*0.35, 40);
-            ctx.fillStyle = '#fff';
-            ctx.font = `${Math.max(11, canvas.width/55)}px Arial`;
-            ctx.textAlign = 'left';
-            ctx.fillText(`Шум: ${Math.floor(noise)}% | Ключ: ${player.hasKey?'ДА':'НЕТ'}`, 16, 32);
-            
-            // Индикатор шума
-            ctx.fillStyle = '#333';
-            ctx.fillRect(8, 50, canvas.width*0.35, 8);
-            ctx.fillStyle = noise > 50 ? '#f00' : '#0f0';
-            ctx.fillRect(8, 50, canvas.width*0.35*(noise/100), 8);
+            return false;
         }
         
-        // ==================== ИГРОВОЙ ЦИКЛ ====================
-        function update() {
-            if (gameState !== 'playing') return;
+        function updateMonster(delta) {
+            if (!monster || gameState !== 'playing') return;
             
-            player.move();
+            const mPos = monster.mesh.position;
+            const pPos = camera.position;
+            const dx = pPos.x - mPos.x;
+            const dz = pPos.z - mPos.z;
+            const dist = Math.sqrt(dx*dx + dz*dz);
             
-            if (!key.collected) {
-                let d = Math.sqrt((player.x-key.x)**2 + (player.y-key.y)**2);
-                if (d < 22) {
-                    key.collected = true;
-                    player.hasKey = true;
-                }
+            // Столкновение с игроком
+            if (dist < 0.8) {
+                gameState = 'caught';
+                return;
             }
             
-            if (player.hasKey) {
-                let dr = {x: door.x-8, y: door.y, w: door.w+16, h: door.h};
-                if (player.overlap(player.getRect(), dr)) {
-                    gameState = 'win';
+            let target = null;
+            
+            if (monsterState === 'chase') {
+                target = new THREE.Vector3(pPos.x, 0, pPos.z);
+                if (dist > 12) {
+                    monsterState = 'search';
+                    searchTarget = new THREE.Vector3(pPos.x, 0, pPos.z);
+                    searchTimer = 3;
                 }
-            }
-            
-            monster.update();
-        }
-        
-        function gameLoop() {
-            update();
-            draw();
-            
-            const msg = document.getElementById('message');
-            const msgBig = document.getElementById('msgBig');
-            const msgSmall = document.getElementById('msgSmall');
-            
-            if (gameState === 'caught') {
-                msg.style.display = 'block';
-                msgBig.style.color = '#f00';
-                msgBig.textContent = 'ВЫ ПОЙМАНЫ!';
-                msgSmall.textContent = 'Нажмите ИГРАТЬ для перезапуска';
-            } else if (gameState === 'win') {
-                msg.style.display = 'block';
-                msgBig.style.color = '#0f0';
-                msgBig.textContent = 'ВЫ СБЕЖАЛИ!';
-                msgSmall.textContent = 'Нажмите ИГРАТЬ для новой игры';
+            } else if (monsterState === 'search') {
+                if (searchTimer > 0 && searchTarget) {
+                    searchTimer -= delta;
+                    target = searchTarget;
+                    if (new THREE.Vector3(mPos.x, 0, mPos.z).distanceTo(searchTarget) < 0.5) {
+                        searchTarget = null;
+                    }
+                } else {
+                    monsterState = 'patrol';
+                }
             } else {
-                msg.style.display = 'none';
+                target = patrolPoints[patrolIndex];
+                if (new THREE.Vector3(mPos.x, 0, mPos.z).distanceTo(target) < 0.5) {
+                    patrolIndex = (patrolIndex + 1) % patrolPoints.length;
+                }
             }
             
-            requestAnimationFrame(gameLoop);
+            // Проверка видимости игрока
+            if (dist < 12 && monsterState !== 'chase') {
+                const dir = new THREE.Vector3(dx, 0, dz).normalize();
+                const raycaster = new THREE.Raycaster(
+                    new THREE.Vector3(mPos.x, 0.5, mPos.z),
+                    dir,
+                    0,
+                    dist
+                );
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                let blocked = false;
+                for (let inter of intersects) {
+                    if (inter.object !== window.keyMesh && 
+                        inter.object !== monster.mesh &&
+                        inter.object !== camera &&
+                        inter.distance < dist - 0.5) {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (!blocked) {
+                    monsterState = 'chase';
+                }
+            }
+            
+            // Слышит шум
+            if (noise > 50 && dist < 8) {
+                monsterState = 'chase';
+            }
+            
+            // Движение к цели
+            if (target) {
+                const tdx = target.x - mPos.x;
+                const tdz = target.z - mPos.z;
+                const tdist = Math.sqrt(tdx*tdx + tdz*tdz);
+                
+                if (tdist > 0.1) {
+                    const speed = (monsterState === 'chase' ? monster.chaseSpeed : monster.speed) * delta;
+                    const moveX = (tdx / tdist) * Math.min(speed, tdist);
+                    const moveZ = (tdz / tdist) * Math.min(speed, tdist);
+                    
+                    const newX = mPos.x + moveX;
+                    const newZ = mPos.z + moveZ;
+                    
+                    if (!checkCollision(newX, mPos.z, 0.35)) mPos.x = newX;
+                    if (!checkCollision(mPos.x, newZ, 0.35)) mPos.z = newZ;
+                    
+                    // Поворот монстра
+                    monster.mesh.lookAt(new THREE.Vector3(mPos.x + tdx, 0, mPos.z + tdz));
+                }
+            }
+            
+            // Анимация глаз
+            const glow = Math.abs(Math.sin(Date.now() * 0.005)) * 2 + 1;
+            monster.leftEye.material.emissiveIntensity = glow;
+            monster.rightEye.material.emissiveIntensity = glow;
         }
         
         // ==================== УПРАВЛЕНИЕ ====================
-        function startGame() {
-            document.getElementById('startScreen').style.display = 'none';
-            gameState = 'playing';
-            init();
+        const joystickCanvas = document.getElementById('joystickCanvas');
+        const jctx = joystickCanvas.getContext('2d');
+        
+        function drawJoystick() {
+            jctx.clearRect(0, 0, 130, 130);
+            
+            // База
+            jctx.fillStyle = 'rgba(255,255,255,0.1)';
+            jctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            jctx.lineWidth = 3;
+            jctx.beginPath();
+            jctx.arc(65, 65, 55, 0, Math.PI*2);
+            jctx.fill();
+            jctx.stroke();
+            
+            // Стик
+            const sx = 65 + joystickDX * 40;
+            const sy = 65 + joystickDY * 40;
+            jctx.fillStyle = 'rgba(255,255,255,0.4)';
+            jctx.beginPath();
+            jctx.arc(sx, sy, 25, 0, Math.PI*2);
+            jctx.fill();
         }
         
-        // Джойстик
-        const joystickZone = document.getElementById('joystickZone');
-        const thumb = document.getElementById('joystickThumb');
-        const base = document.getElementById('joystickBase');
-        const maxDist = 40;
+        let joystickTouchId = null;
         
-        function getJoystickPos(e) {
-            const touch = e.touches[0];
-            const rect = base.getBoundingClientRect();
-            return {
-                x: touch.clientX - rect.left - rect.width/2,
-                y: touch.clientY - rect.top - rect.height/2
-            };
-        }
-        
-        joystickZone.addEventListener('touchstart', (e) => {
+        joystickCanvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            const touch = e.touches[0];
+            joystickTouchId = touch.identifier;
+            updateJoystick(touch);
             joystickActive = true;
-            const pos = getJoystickPos(e);
-            const dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y);
-            const clampedDist = Math.min(dist, maxDist);
-            const angle = Math.atan2(pos.y, pos.x);
-            
-            joystickDX = Math.cos(angle) * (dist / maxDist);
-            joystickDY = Math.sin(angle) * (dist / maxDist);
-            
-            thumb.style.transform = `translate(calc(-50% + ${Math.cos(angle)*clampedDist}px), calc(-50% + ${Math.sin(angle)*clampedDist}px))`;
-            joystickId = e.touches[0].identifier;
         });
         
-        joystickZone.addEventListener('touchmove', (e) => {
+        joystickCanvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            if (!joystickActive) return;
-            
             for (let t of e.touches) {
-                if (t.identifier === joystickId) {
-                    const rect = base.getBoundingClientRect();
-                    const pos = {
-                        x: t.clientX - rect.left - rect.width/2,
-                        y: t.clientY - rect.top - rect.height/2
-                    };
-                    const dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y);
-                    const clampedDist = Math.min(dist, maxDist);
-                    const angle = Math.atan2(pos.y, pos.x);
-                    
-                    joystickDX = Math.cos(angle) * (dist / maxDist);
-                    joystickDY = Math.sin(angle) * (dist / maxDist);
-                    
-                    thumb.style.transform = `translate(calc(-50% + ${Math.cos(angle)*clampedDist}px), calc(-50% + ${Math.sin(angle)*clampedDist}px))`;
+                if (t.identifier === joystickTouchId) {
+                    updateJoystick(t);
                 }
             }
         });
+        
+        function updateJoystick(touch) {
+            const rect = joystickCanvas.getBoundingClientRect();
+            const cx = touch.clientX - rect.left - 65;
+            const cy = touch.clientY - rect.top - 65;
+            const dist = Math.sqrt(cx*cx + cy*cy);
+            const maxDist = 40;
+            const clamped = Math.min(dist, maxDist);
+            
+            if (dist > 5) {
+                joystickDX = (cx / dist) * (clamped / maxDist);
+                joystickDY = (cy / dist) * (clamped / maxDist);
+            } else {
+                joystickDX = 0;
+                joystickDY = 0;
+            }
+        }
         
         function resetJoystick() {
             joystickActive = false;
             joystickDX = 0;
             joystickDY = 0;
-            joystickId = null;
-            thumb.style.transform = 'translate(-50%, -50%)';
+            joystickTouchId = null;
         }
         
-        joystickZone.addEventListener('touchend', resetJoystick);
-        joystickZone.addEventListener('touchcancel', resetJoystick);
+        joystickCanvas.addEventListener('touchend', resetJoystick);
+        joystickCanvas.addEventListener('touchcancel', resetJoystick);
+        
+        // Взгляд по экрану
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (e.target === joystickCanvas) return;
+            if (e.touches.length === 1) {
+                isLooking = true;
+                touchLookDX = 0;
+                touchLookDY = 0;
+            }
+        });
+        
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (!isLooking) return;
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                touchLookDX = e.touches[0].clientX - (e.touches[0].clientX - touchLookDX);
+                yaw -= (e.touches[0].clientX - (window._lastLookX || e.touches[0].clientX)) * 0.003;
+                pitch -= (e.touches[0].clientY - (window._lastLookY || e.touches[0].clientY)) * 0.003;
+                window._lastLookX = e.touches[0].clientX;
+                window._lastLookY = e.touches[0].clientY;
+            }
+        });
+        
+        renderer.domElement.addEventListener('touchend', () => {
+            isLooking = false;
+            window._lastLookX = null;
+            window._lastLookY = null;
+        });
         
         // Кнопки
-        function setupBtn(id, pressVar) {
-            const btn = document.getElementById(id);
-            btn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                if (pressVar === 'run') runPressed = true;
-                if (pressVar === 'crouch') crouchPressed = true;
-                if (pressVar === 'interact') {
-                    if (!key.collected) {
-                        let d = Math.sqrt((player.x-key.x)**2 + (player.y-key.y)**2);
-                        if (d < 25) {
-                            key.collected = true;
-                            player.hasKey = true;
-                        }
-                    }
+        document.getElementById('btnRun').addEventListener('pointerdown', () => runPressed = true);
+        document.getElementById('btnRun').addEventListener('pointerup', () => runPressed = false);
+        document.getElementById('btnRun').addEventListener('pointerleave', () => runPressed = false);
+        
+        document.getElementById('btnCrouch').addEventListener('pointerdown', () => crouchPressed = true);
+        document.getElementById('btnCrouch').addEventListener('pointerup', () => crouchPressed = false);
+        document.getElementById('btnCrouch').addEventListener('pointerleave', () => crouchPressed = false);
+        
+        document.getElementById('btnInteract').addEventListener('pointerdown', () => {
+            // Проверка близости к ключу
+            if (window.keyMesh && !hasKey) {
+                const dist = camera.position.distanceTo(window.keyMesh.position);
+                if (dist < 1.5) {
+                    hasKey = true;
+                    scene.remove(window.keyMesh);
+                    window.keyMesh = null;
                 }
-            });
-            btn.addEventListener('pointerup', (e) => {
-                e.preventDefault();
-                if (pressVar === 'run') runPressed = false;
-                if (pressVar === 'crouch') crouchPressed = false;
-            });
-            btn.addEventListener('pointerleave', (e) => {
-                if (pressVar === 'run') runPressed = false;
-                if (pressVar === 'crouch') crouchPressed = false;
-            });
-        }
+            }
+            // Проверка близости к двери
+            if (hasKey) {
+                const doorDist = Math.abs(camera.position.x - 15.9) + Math.abs(camera.position.z - 10);
+                if (doorDist < 2 && camera.position.x > 14) {
+                    gameState = 'win';
+                }
+            }
+        });
         
-        setupBtn('btnRun', 'run');
-        setupBtn('btnCrouch', 'crouch');
-        setupBtn('btnInteract', 'interact');
+        // ==================== ОСНОВНОЙ ЦИКЛ ====================
+        let lastTime = performance.now();
         
-        // Предотвращение зума
-        document.addEventListener('gesturestart', (e) => e.preventDefault());
-        document.addEventListener('gesturechange', (e) => e.preventDefault());
-        document.addEventListener('gestureend', (e) => e.preventDefault());
-        
-        // Кнопка ИГРАТЬ при перезапуске
-        document.querySelector('#startScreen .btn').addEventListener('click', startGame);
-        
-        // Показываем кнопку ИГРАТЬ при game over
-        setInterval(() => {
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const now = performance.now();
+            const delta = Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+            
+            drawJoystick();
+            
+            if (gameState === 'playing') {
+                // Шум
+                noise = Math.max(0, noise - delta * 10);
+                if (runPressed) noise = Math.min(100, noise + delta * 80);
+                if (crouchPressed) noise = Math.max(0, noise - delta * 20);
+                
+                // Скорость игрока
+                let speed = playerSpeed;
+                if (runPressed) speed = 5.5;
+                if (crouchPressed) {
+                    speed = 1.5;
+                    camera.position.y = 0.8;
+                } else {
+                    camera.position.y = playerHeight;
+                }
+                
+                // Движение
+                if (joystickActive && (Math.abs(joystickDX) > 0.1 || Math.abs(joystickDY) > 0.1)) {
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    forward.y = 0;
+                    forward.normalize();
+                    
+                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    right.y = 0;
+                    right.normalize();
+                    
+                    const moveX = (right.x * joystickDX + forward.x * joystickDY) * speed * delta;
+                    const moveZ = (right.z * joystickDX + forward.z * joystickDY) * speed * delta;
+                    
+                    const newX = camera.position.x + moveX;
+                    const newZ = camera.position.z + moveZ;
+                    
+                    if (!checkCollision(newX, camera.position.z)) camera.position.x = newX;
+                    if (!checkCollision(camera.position.x, newZ)) camera.position.z = newZ;
+                }
+                
+                // Ограничение камеры
+                camera.position.x = Math.max(0.4, Math.min(15.6, camera.position.x));
+                camera.position.z = Math.max(0.4, Math.min(13.6, camera.position.z));
+                
+                // Поворот камеры
+                pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+                
+                // Фонарик
+                flashlight.position.copy(camera.position);
+                flashlight.target.position.copy(
+                    camera.position.clone().add(
+                        new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion)
+                    )
+                );
+                flashlight.target.updateMatrixWorld();
+                
+                // Монстр
+                updateMonster(delta);
+                
+                // Проверка выхода
+                if (hasKey && camera.position.x > 15.2 && Math.abs(camera.position.z - 10) < 0.8) {
+                    gameState = 'win';
+                }
+            }
+            
+            // Сообщения
+            const msg = document.getElementById('message');
+            if (gameState === 'caught') {
+                msg.style.display = 'block';
+                document.getElementById('msgBig').innerHTML = '<span style="color:#f00;">ВЫ ПОЙМАНЫ!</span>';
+                document.getElementById('msgSmall').textContent = 'Нажмите ИГРАТЬ для перезапуска';
+            } else if (gameState === 'win') {
+                msg.style.display = 'block';
+                document.getElementById('msgBig').innerHTML = '<span style="color:#0f0;">ВЫ СБЕЖАЛИ!</span>';
+                document.getElementById('msgSmall').textContent = 'Нажмите ИГРАТЬ для перезапуска';
+            } else {
+                msg.style.display = 'none';
+            }
+            
             if (gameState === 'caught' || gameState === 'win') {
                 document.getElementById('startScreen').style.display = 'flex';
-                document.querySelector('#startScreen .btn').textContent = '🔄 ИГРАТЬ СНОВА';
+                document.querySelector('#startScreen button').textContent = '🔄 ИГРАТЬ СНОВА';
             }
-        }, 500);
+            
+            renderer.render(scene, camera);
+        }
         
         // ==================== ЗАПУСК ====================
-        init();
-        gameLoop();
+        window.startGame = function() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('message').style.display = 'none';
+            
+            // Очистка сцены
+            while(scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+            walls.length = 0;
+            furnitureList.length = 0;
+            
+            // Пересоздание
+            scene.add(ambientLight);
+            scene.add(flashlight);
+            scene.fog = new THREE.Fog(0x0a0a0a, 5, 25);
+            
+            buildHouse();
+            monster = createMonster();
+            
+            camera.position.set(5, playerHeight, 5);
+            yaw = 0;
+            pitch = 0;
+            hasKey = false;
+            noise = 0;
+            gameState = 'playing';
+            monsterState = 'patrol';
+            patrolIndex = 0;
+            searchTarget = null;
+            searchTimer = 0;
+            
+            lastTime = performance.now();
+        };
+        
+        // Предзапуск
+        buildHouse();
+        monster = createMonster();
+        animate();
+        
+        // Ресайз
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
