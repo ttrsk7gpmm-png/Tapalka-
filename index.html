@@ -1,590 +1,802 @@
-"""
-Granny Horror Game - Python/Pygame
-Управление: WASD - движение, E - взаимодействие, C - присесть, Shift - бег
-Цель: Найти ключ и выбраться через входную дверь
-"""
-import pygame
-import math
-import random
-from enum import Enum
-
-# Инициализация
-pygame.init()
-pygame.mixer.init()
-
-# Константы
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = 768
-FPS = 60
-
-# Цвета
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (200, 0, 0)
-DARK_RED = (100, 0, 0)
-BLOOD_RED = (139, 0, 0)
-GRAY = (80, 80, 80)
-DARK_GRAY = (30, 30, 30)
-LIGHT_GRAY = (120, 120, 120)
-BROWN = (101, 67, 33)
-DARK_BROWN = (60, 40, 20)
-WOOD = (139, 90, 43)
-DARK_WOOD = (101, 67, 33)
-YELLOW = (255, 255, 0)
-DIM_YELLOW = (150, 150, 50)
-GREEN = (0, 255, 0)
-DARK_GREEN = (0, 100, 0)
-BLUE = (0, 100, 255)
-ORANGE = (255, 165, 0)
-
-# Состояния игры
-class GameState(Enum):
-    START = 1
-    PLAYING = 2
-    CAUGHT = 3
-    WIN = 4
-
-# Создание окна
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Granny Horror")
-clock = pygame.time.Clock()
-font_large = pygame.font.Font(None, 74)
-font_medium = pygame.font.Font(None, 48)
-font_small = pygame.font.Font(None, 32)
-
-class Player:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.width = 20
-        self.height = 30
-        self.speed = 3
-        self.run_speed = 5
-        self.crouching = False
-        self.crouch_speed = 1.5
-        self.crouch_height = 15
-        self.has_key = False
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Granny Horror Mobile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
         
-    def get_rect(self):
-        if self.crouching:
-            return pygame.Rect(self.x - self.width//2, 
-                             self.y - self.crouch_height//2,
-                             self.width, self.crouch_height)
-        return pygame.Rect(self.x - self.width//2, self.y - self.height//2,
-                          self.width, self.height)
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            touch-action: manipulation;
+            position: fixed;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            max-height: 900px;
+        }
+        
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Стартовый экран */
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #startScreen h1 {
+            font-size: clamp(36px, 8vw, 60px);
+            color: #ff0000;
+            text-shadow: 0 0 20px red;
+            margin-bottom: 15px;
+        }
+        
+        #startScreen .subtitle {
+            font-size: clamp(14px, 3vw, 20px);
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        
+        #startScreen .btn {
+            background: #c00;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 22px;
+            border-radius: 10px;
+            cursor: pointer;
+            animation: pulse 1.5s infinite;
+            margin: 10px;
+        }
+        
+        @keyframes pulse {
+            0%,100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #startScreen .hint {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+            line-height: 1.8;
+        }
+        
+        /* Джойстик */
+        #joystickZone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            z-index: 5;
+        }
+        
+        #joystickBase {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            background: rgba(255,255,255,0.12);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #joystickThumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+        
+        /* Кнопки действий */
+        .actionBtns {
+            position: absolute;
+            bottom: 40px;
+            right: 20px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .actionBtn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.15);
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #btnRun {
+            background: rgba(255,100,0,0.3);
+            border-color: rgba(255,150,0,0.6);
+        }
+        
+        #btnCrouch {
+            background: rgba(0,100,255,0.3);
+            border-color: rgba(100,150,255,0.6);
+        }
+        
+        #btnInteract {
+            background: rgba(255,255,0,0.3);
+            border-color: rgba(255,255,100,0.6);
+            font-size: 11px;
+        }
+        
+        .actionBtn:active {
+            background: rgba(255,255,255,0.4);
+            transform: scale(0.9);
+        }
+        
+        /* Сообщение */
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+        }
+        
+        #message .big {
+            font-size: clamp(30px, 6vw, 50px);
+            font-weight: bold;
+        }
+        
+        #message .small {
+            font-size: clamp(14px, 3vw, 20px);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Стартовый экран -->
+        <div id="startScreen">
+            <h1>GRANNY HORROR</h1>
+            <p class="subtitle">Выберитесь из дома...</p>
+            <button class="btn" onclick="startGame()">▶ ИГРАТЬ</button>
+            <div class="hint">
+                🕹 Джойстик — движение<br>
+                🟠 RUN — бег (шумно)<br>
+                🔵 CROUCH — присесть (тихо)<br>
+                🟡 РУКА — взять ключ / выход<br>
+                <br>
+                ⚠ Найди ключ и беги к двери!<br>
+                👁 Берегись красных глаз...
+            </div>
+        </div>
+        
+        <!-- Джойстик -->
+        <div id="joystickZone">
+            <div id="joystickBase"></div>
+            <div id="joystickThumb"></div>
+        </div>
+        
+        <!-- Кнопки -->
+        <div class="actionBtns">
+            <button class="actionBtn" id="btnRun">RUN</button>
+            <button class="actionBtn" id="btnCrouch">CROUCH</button>
+            <button class="actionBtn" id="btnInteract">👋</button>
+        </div>
+        
+        <!-- Сообщение -->
+        <div id="message">
+            <div class="big" id="msgBig"></div>
+            <div class="small" id="msgSmall"></div>
+        </div>
+    </div>
 
-class Monster:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.width = 30
-        self.height = 40
-        self.speed = 2.5
-        self.patrol_points = []
-        self.current_target = 0
-        self.chase_speed = 4.5
-        self.state = "patrol"  # patrol, chase, search
-        self.search_timer = 0
-        self.search_target = None
-        self.vision_range = 350
-        self.hearing_range = 200
-        self.eye_glow_timer = 0
+    <script>
+        // ==================== ХОЛСТ ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
         
-    def get_rect(self):
-        return pygame.Rect(self.x - self.width//2, self.y - self.height//2,
-                          self.width, self.height)
-    
-    def move_to(self, target_x, target_y, walls):
-        dx = target_x - self.x
-        dy = target_y - self.y
-        dist = math.sqrt(dx*dx + dy*dy)
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
         
-        if dist < 5:
-            return True
+        // ==================== ИГРОВЫЕ ПЕРЕМЕННЫЕ ====================
+        let gameState = 'start'; // start, playing, caught, win
+        let player, monster, walls, furniture, key, door, noise;
+        
+        // Джойстик
+        let joystickActive = false;
+        let joystickDX = 0;
+        let joystickDY = 0;
+        let joystickId = null;
+        
+        // Кнопки
+        let runPressed = false;
+        let crouchPressed = false;
+        
+        // ==================== КЛАССЫ ====================
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.w = 16;
+                this.h = 28;
+                this.speed = 2.5;
+                this.runSpeed = 4.5;
+                this.crouchSpeed = 1.3;
+                this.hasKey = false;
+                this.crouching = false;
+            }
             
-        speed = self.chase_speed if self.state == "chase" else self.speed
-        dx = dx/dist * speed
-        dy = dy/dist * speed
-        
-        new_rect = pygame.Rect(self.x + dx - self.width//2,
-                               self.y - self.height//2,
-                               self.width, self.height)
-        
-        # Проверка коллизий
-        for wall in walls:
-            if new_rect.colliderect(wall):
-                # Пробуем движение только по X
-                new_rect_x = pygame.Rect(self.x + dx - self.width//2,
-                                        self.y - self.height//2,
-                                        self.width, self.height)
-                if not new_rect_x.colliderect(wall):
-                    self.x += dx
-                # Пробуем движение только по Y
-                new_rect_y = pygame.Rect(self.x - self.width//2,
-                                        self.y + dy - self.height//2,
-                                        self.width, self.height)
-                if not new_rect_y.colliderect(wall):
-                    self.y += dy
-                return False
-        
-        self.x += dx
-        self.y += dy
-        return False
-
-class Furniture:
-    def __init__(self, x, y, width, height, color, name):
-        self.rect = pygame.Rect(x, y, width, height)
-        self.color = color
-        self.name = name
-        self.items = []
-        
-    def draw(self, surface, offset_x=0, offset_y=0):
-        pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.rect(surface, WHITE, self.rect, 2)
-
-class Key:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.size = 10
-        self.collected = False
-        
-    def draw(self, surface):
-        if not self.collected:
-            pygame.draw.circle(surface, YELLOW, (int(self.x), int(self.y)), self.size)
-            pygame.draw.circle(surface, DIM_YELLOW, (int(self.x), int(self.y)), self.size-3)
-
-class Game:
-    def __init__(self):
-        self.state = GameState.START
-        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
-        self.monster = Monster(300, 300)
-        self.walls = []
-        self.furniture = []
-        self.key = None
-        self.door = None
-        self.noise_meter = 0
-        self.darkness_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.darkness_surface.set_alpha(200)
-        self.create_house()
-        
-    def create_house(self):
-        # Стены дома
-        wall_thickness = 20
-        
-        # Внешние стены
-        self.walls = [
-            # Левая стена
-            pygame.Rect(50, 50, wall_thickness, SCREEN_HEIGHT-100),
-            # Правая стена
-            pygame.Rect(SCREEN_WIDTH-70, 50, wall_thickness, SCREEN_HEIGHT-100),
-            # Верхняя стена
-            pygame.Rect(50, 50, SCREEN_WIDTH-100, wall_thickness),
-            # Нижняя стена
-            pygame.Rect(50, SCREEN_HEIGHT-70, SCREEN_WIDTH-100, wall_thickness),
+            getRect() {
+                return {
+                    x: this.x - this.w/2,
+                    y: this.y - (this.crouching ? 14 : this.h)/2,
+                    w: this.w,
+                    h: this.crouching ? 14 : this.h
+                };
+            }
             
-            # Внутренние стены - создают комнаты
-            # Горизонтальная стена (создает верхнюю и нижнюю комнаты)
-            pygame.Rect(50, 400, 300, wall_thickness),
-            pygame.Rect(400, 400, SCREEN_WIDTH-470, wall_thickness),
-            
-            # Вертикальная стена (создает левые и правые комнаты)
-            pygame.Rect(500, 70, wall_thickness, 330),
-            pygame.Rect(500, 420, wall_thickness, SCREEN_HEIGHT-490),
-        ]
-        
-        # Дверь выхода
-        self.door = pygame.Rect(SCREEN_WIDTH-80, SCREEN_HEIGHT//2-30, 30, 60)
-        
-        # Мебель
-        self.furniture = [
-            Furniture(100, 100, 80, 40, BROWN, "Стол"),
-            Furniture(250, 100, 40, 80, BROWN, "Шкаф"),
-            Furniture(600, 100, 60, 60, DARK_BROWN, "Тумба"),
-            Furniture(150, 500, 100, 40, WOOD, "Кровать"),
-            Furniture(600, 500, 80, 50, DARK_WOOD, "Диван"),
-            Furniture(350, 500, 60, 60, GRAY, "Холодильник"),
-            Furniture(750, 300, 50, 100, DARK_BROWN, "Книжный шкаф"),
-        ]
-        
-        # Ключ (спрятан в случайном месте)
-        key_furniture = random.choice(self.furniture)
-        self.key = Key(key_furniture.rect.centerx + random.randint(-20, 20),
-                      key_furniture.rect.centery + random.randint(-20, 20))
-        
-        # Точки патрулирования монстра
-        self.monster.patrol_points = [
-            (200, 200),
-            (400, 200),
-            (400, 500),
-            (200, 500),
-            (600, 300),
-            (700, 600),
-            (300, 600),
-        ]
-        
-    def handle_input(self):
-        keys = pygame.key.get_pressed()
-        
-        # Определение скорости
-        speed = self.player.speed
-        if keys[pygame.K_LSHIFT]:
-            speed = self.player.run_speed
-            self.noise_meter = min(100, self.noise_meter + 2)
-        elif keys[pygame.K_c]:
-            self.player.crouching = True
-            speed = self.player.crouch_speed
-            self.noise_meter = max(0, self.noise_meter - 0.5)
-        else:
-            self.player.crouching = False
-            self.noise_meter = max(0, self.noise_meter - 0.3)
-        
-        # Движение
-        dx, dy = 0, 0
-        if keys[pygame.K_a]:
-            dx = -1
-        if keys[pygame.K_d]:
-            dx = 1
-        if keys[pygame.K_w]:
-            dy = -1
-        if keys[pygame.K_s]:
-            dy = 1
-            
-        # Нормализация диагонального движения
-        if dx != 0 and dy != 0:
-            dx *= 0.707
-            dy *= 0.707
-            
-        # Проверка коллизий со стенами
-        new_rect = self.player.get_rect()
-        new_rect.x += dx * speed
-        for wall in self.walls:
-            if new_rect.colliderect(wall):
-                dx = 0
-                break
+            move() {
+                let dx = joystickDX;
+                let dy = joystickDY;
                 
-        new_rect = self.player.get_rect()
-        new_rect.y += dy * speed
-        for wall in self.walls:
-            if new_rect.colliderect(wall):
-                dy = 0
-                break
+                if (!joystickActive || (dx === 0 && dy === 0)) {
+                    noise = Math.max(0, noise - 0.5);
+                    return;
+                }
                 
-        # Проверка коллизий с мебелью
-        new_rect = self.player.get_rect()
-        new_rect.x += dx * speed
-        for furn in self.furniture:
-            if new_rect.colliderect(furn.rect):
-                dx = 0
-                break
+                let speed = this.speed;
+                noise = Math.max(0, noise - 0.3);
                 
-        new_rect = self.player.get_rect()
-        new_rect.y += dy * speed
-        for furn in self.furniture:
-            if new_rect.colliderect(furn.rect):
-                dy = 0
-                break
-        
-        self.player.x += dx * speed
-        self.player.y += dy * speed
-        
-        # Взаимодействие с предметами
-        if keys[pygame.K_e]:
-            self.interact()
-            
-    def interact(self):
-        player_rect = self.player.get_rect()
-        
-        # Проверка ключа
-        if self.key and not self.key.collected:
-            key_rect = pygame.Rect(self.key.x - self.key.size,
-                                  self.key.y - self.key.size,
-                                  self.key.size * 2, self.key.size * 2)
-            if player_rect.colliderect(key_rect):
-                self.key.collected = True
-                self.player.has_key = True
+                if (runPressed) {
+                    speed = this.runSpeed;
+                    noise = Math.min(100, noise + 2.5);
+                }
                 
-        # Проверка двери
-        if self.player.has_key and player_rect.colliderect(self.door):
-            self.state = GameState.WIN
-            
-    def update_monster(self):
-        player_rect = self.player.get_rect()
-        monster_rect = self.monster.get_rect()
-        
-        # Проверка столкновения с игроком
-        if player_rect.colliderect(monster_rect):
-            self.state = GameState.CAUGHT
-            return
-            
-        # Определение поведения монстра
-        dist_to_player = math.sqrt((self.player.x - self.monster.x)**2 + 
-                                  (self.player.y - self.monster.y)**2)
-        
-        if self.monster.state == "chase":
-            # Монстр преследует игрока
-            self.monster.move_to(self.player.x, self.player.y, 
-                               self.walls + [f.rect for f in self.furniture])
-            
-            # Проверка, потерял ли монстр игрока из виду
-            if dist_to_player > self.monster.vision_range:
-                self.monster.state = "search"
-                self.monster.search_target = (self.player.x, self.player.y)
-                self.monster.search_timer = 180  # 3 секунды поиска
+                if (crouchPressed) {
+                    this.crouching = true;
+                    speed = this.crouchSpeed;
+                    noise = Math.max(0, noise - 0.5);
+                } else {
+                    this.crouching = false;
+                }
                 
-        elif self.monster.state == "search":
-            if self.monster.search_timer > 0:
-                self.monster.search_timer -= 1
-                if self.monster.search_target:
-                    arrived = self.monster.move_to(self.monster.search_target[0],
-                                                 self.monster.search_target[1],
-                                                 self.walls + [f.rect for f in self.furniture])
-                    if arrived:
-                        self.monster.search_target = None
-            else:
-                self.monster.state = "patrol"
+                // Нормализация
+                let mag = Math.sqrt(dx*dx + dy*dy);
+                if (mag > 1) {
+                    dx /= mag;
+                    dy /= mag;
+                }
                 
-        elif self.monster.state == "patrol":
-            # Патрулирование по точкам
-            if self.monster.patrol_points:
-                target = self.monster.patrol_points[self.monster.current_target]
-                arrived = self.monster.move_to(target[0], target[1],
-                                             self.walls + [f.rect for f in self.furniture])
-                if arrived:
-                    self.monster.current_target = (self.monster.current_target + 1) % len(self.monster.patrol_points)
-        
-        # Проверка, видит ли монстр игрока
-        if dist_to_player < self.monster.vision_range:
-            # Проверка линии прямой видимости
-            can_see = True
-            steps = int(dist_to_player / 10)
-            for i in range(steps):
-                check_x = self.monster.x + (self.player.x - self.monster.x) * (i/steps)
-                check_y = self.monster.y + (self.player.y - self.monster.y) * (i/steps)
-                check_rect = pygame.Rect(check_x - 2, check_y - 2, 4, 4)
+                let newX = this.x + dx * speed;
+                let newY = this.y + dy * speed;
                 
-                for wall in self.walls:
-                    if check_rect.colliderect(wall):
-                        can_see = False
-                        break
-                        
-            if can_see:
-                self.monster.state = "chase"
-        
-        # Проверка шума
-        if self.noise_meter > 50 and dist_to_player < self.monster.hearing_range:
-            self.monster.state = "chase"
-            
-    def draw_darkness(self):
-        """Создание эффекта темноты"""
-        self.darkness_surface.fill(BLACK)
-        
-        # Свет вокруг игрока (как фонарик)
-        for radius in range(200, 0, -5):
-            alpha = int(255 * (1 - radius/200))
-            pygame.draw.circle(self.darkness_surface, (0, 0, 0, alpha),
-                             (int(self.player.x), int(self.player.y)), radius)
-        
-        self.darkness_surface.set_colorkey(BLACK)
-        screen.blit(self.darkness_surface, (0, 0))
-        
-    def draw_monster(self):
-        """Рисование монстра с красными глазами"""
-        monster_rect = self.monster.get_rect()
-        
-        # Тело монстра
-        pygame.draw.ellipse(screen, DARK_GRAY, monster_rect)
-        
-        # Голова
-        head_rect = pygame.Rect(monster_rect.centerx - 15,
-                               monster_rect.top - 10, 30, 25)
-        pygame.draw.ellipse(screen, (60, 60, 60), head_rect)
-        
-        # Красные глаза (свечение)
-        self.monster.eye_glow_timer += 0.1
-        glow = abs(math.sin(self.monster.eye_glow_timer)) * 100
-        
-        # Левый глаз
-        eye_left = (head_rect.centerx - 8, head_rect.centery - 5)
-        pygame.draw.circle(screen, RED, eye_left, 6)
-        pygame.draw.circle(screen, (255, glow, glow), eye_left, 4)
-        pygame.draw.circle(screen, BLACK, eye_left, 2)
-        
-        # Правый глаз
-        eye_right = (head_rect.centerx + 8, head_rect.centery - 5)
-        pygame.draw.circle(screen, RED, eye_right, 6)
-        pygame.draw.circle(screen, (255, glow, glow), eye_right, 4)
-        pygame.draw.circle(screen, BLACK, eye_right, 2)
-        
-    def draw(self):
-        screen.fill(DARK_GRAY)
-        
-        # Рисование пола
-        for x in range(0, SCREEN_WIDTH, 50):
-            for y in range(0, SCREEN_HEIGHT, 50):
-                pygame.draw.rect(screen, (50, 40, 30), (x, y, 50, 50))
-                pygame.draw.rect(screen, (45, 35, 25), (x, y, 50, 50), 1)
-        
-        # Рисование стен
-        for wall in self.walls:
-            pygame.draw.rect(screen, DARK_BROWN, wall)
-            pygame.draw.rect(screen, BLACK, wall, 3)
-            
-        # Рисование двери
-        if self.door:
-            door_color = GREEN if self.player.has_key else BLOOD_RED
-            pygame.draw.rect(screen, door_color, self.door)
-            pygame.draw.rect(screen, BLACK, self.door, 3)
-            text = font_small.render("EXIT", True, WHITE)
-            screen.blit(text, (self.door.x + 5, self.door.y + 20))
-            
-        # Рисование мебели
-        for furn in self.furniture:
-            furn.draw(screen)
-            # Тень от мебели
-            shadow_rect = furn.rect.copy()
-            shadow_rect.x += 5
-            shadow_rect.y += 5
-            pygame.draw.rect(screen, BLACK, shadow_rect)
-            # Сама мебель
-            pygame.draw.rect(screen, furn.color, furn.rect)
-            pygame.draw.rect(screen, BLACK, furn.rect, 2)
-            
-        # Рисование ключа
-        if self.key and not self.key.collected:
-            self.key.draw(screen)
-            
-        # Рисование монстра
-        self.draw_monster()
-        
-        # Рисование игрока
-        player_rect = self.player.get_rect()
-        pygame.draw.rect(screen, BLUE, player_rect)
-        pygame.draw.rect(screen, WHITE, player_rect, 2)
-        
-        # Эффект темноты
-        self.draw_darkness()
-        
-        # Шкала шума
-        noise_text = font_small.render(f"Шум: {int(self.noise_meter)}%", True, WHITE)
-        screen.blit(noise_text, (10, 10))
-        pygame.draw.rect(screen, WHITE, (10, 40, 100, 10))
-        noise_color = GREEN if self.noise_meter < 50 else RED
-        pygame.draw.rect(screen, noise_color, (10, 40, self.noise_meter, 10))
-        
-        # Индикатор ключа
-        key_text = font_small.render("Ключ: " + ("Да" if self.player.has_key else "Нет"), True, WHITE)
-        screen.blit(key_text, (10, 60))
-        
-        # Подсказки управления
-        hints = [
-            "WASD - движение",
-            "Shift - бег (шумно)",
-            "C - присесть (тихо)",
-            "E - взаимодействие"
-        ]
-        for i, hint in enumerate(hints):
-            hint_text = font_small.render(hint, True, LIGHT_GRAY)
-            screen.blit(hint_text, (SCREEN_WIDTH - 200, 10 + i * 25))
-            
-    def draw_start_screen(self):
-        screen.fill(BLACK)
-        
-        title = font_large.render("GRANNY HORROR", True, RED)
-        title_rect = title.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//3))
-        screen.blit(title, title_rect)
-        
-        start_text = font_medium.render("Нажмите ENTER чтобы начать", True, WHITE)
-        start_rect = start_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-        
-        # Мигание текста
-        if pygame.time.get_ticks() % 1000 < 500:
-            screen.blit(start_text, start_rect)
-            
-        controls = [
-            "Управление:",
-            "WASD - Движение",
-            "SHIFT - Бег (создает шум)",
-            "C - Присесть (тихо)",
-            "E - Взаимодействие",
-            "",
-            "Найдите ключ и доберитесь до зеленой двери!",
-            "Остерегайтесь монстра с красными глазами!"
-        ]
-        
-        for i, line in enumerate(controls):
-            text = font_small.render(line, True, GRAY)
-            text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 80 + i * 25))
-            screen.blit(text, text_rect)
-            
-    def draw_game_over(self):
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        overlay.set_alpha(200)
-        overlay.fill(BLACK)
-        screen.blit(overlay, (0, 0))
-        
-        text = font_large.render("ВЫ ПОЙМАНЫ!", True, RED)
-        text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
-        screen.blit(text, text_rect)
-        
-        restart = font_medium.render("Нажмите ENTER для перезапуска", True, WHITE)
-        restart_rect = restart.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50))
-        screen.blit(restart, restart_rect)
-        
-    def draw_win_screen(self):
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        overlay.set_alpha(200)
-        overlay.fill(BLACK)
-        screen.blit(overlay, (0, 0))
-        
-        text = font_large.render("ВЫ СБЕЖАЛИ!", True, GREEN)
-        text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
-        screen.blit(text, text_rect)
-        
-        restart = font_medium.render("Нажмите ENTER для новой игры", True, WHITE)
-        restart_rect = restart.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50))
-        screen.blit(restart, restart_rect)
-        
-    def reset(self):
-        self.__init__()
-        
-def main():
-    game = Game()
-    running = True
-    
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+                let testRect = this.getRect();
+                testRect.x = newX - this.w/2;
+                if (!this.collides(testRect)) this.x = newX;
                 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    if game.state == GameState.START:
-                        game.state = GameState.PLAYING
-                    elif game.state in [GameState.CAUGHT, GameState.WIN]:
-                        game.reset()
-                        game.state = GameState.PLAYING
-                        
-        if game.state == GameState.PLAYING:
-            game.handle_input()
-            game.update_monster()
-            game.draw()
+                testRect = this.getRect();
+                testRect.y = newY - (this.crouching ? 14 : this.h)/2;
+                if (!this.collides(testRect)) this.y = newY;
+                
+                this.x = Math.max(25, Math.min(canvas.width - 25, this.x));
+                this.y = Math.max(25, Math.min(canvas.height - 25, this.y));
+            }
             
-        elif game.state == GameState.START:
-            game.draw_start_screen()
+            collides(rect) {
+                for (let w of walls) if (this.overlap(rect, w)) return true;
+                for (let f of furniture) if (this.overlap(rect, f)) return true;
+                return false;
+            }
             
-        elif game.state == GameState.CAUGHT:
-            game.draw()
-            game.draw_game_over()
-            
-        elif game.state == GameState.WIN:
-            game.draw()
-            game.draw_win_screen()
-            
-        pygame.display.flip()
-        clock.tick(FPS)
+            overlap(a, b) {
+                return a.x < b.x + b.w && a.x + a.w > b.x &&
+                       a.y < b.y + b.h && a.y + a.h > b.y;
+            }
+        }
         
-    pygame.quit()
-
-if __name__ == "__main__":
-    main()
+        class Monster {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.w = 26;
+                this.h = 38;
+                this.speed = 2;
+                this.chaseSpeed = 4;
+                this.state = 'patrol';
+                this.patrolPoints = [];
+                this.patrolIndex = 0;
+                this.searchTimer = 0;
+                this.searchTarget = null;
+                this.visionRange = 300;
+                this.hearingRange = 180;
+                this.eyeGlow = 0;
+            }
+            
+            getRect() {
+                return {x: this.x-this.w/2, y: this.y-this.h/2, w: this.w, h: this.h};
+            }
+            
+            update() {
+                this.eyeGlow += 0.1;
+                
+                let dx = player.x - this.x;
+                let dy = player.y - this.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (this.overlap(this.getRect(), player.getRect())) {
+                    gameState = 'caught';
+                    return;
+                }
+                
+                if (this.state === 'chase') {
+                    this.moveToward(player.x, player.y);
+                    if (dist > this.visionRange) {
+                        this.state = 'search';
+                        this.searchTarget = {x: player.x, y: player.y};
+                        this.searchTimer = 150;
+                    }
+                } else if (this.state === 'search') {
+                    if (this.searchTimer > 0 && this.searchTarget) {
+                        this.searchTimer--;
+                        if (this.moveToward(this.searchTarget.x, this.searchTarget.y)) {
+                            this.searchTarget = null;
+                        }
+                    } else {
+                        this.state = 'patrol';
+                    }
+                } else {
+                    if (this.patrolPoints.length > 0) {
+                        let t = this.patrolPoints[this.patrolIndex];
+                        if (this.moveToward(t.x, t.y)) {
+                            this.patrolIndex = (this.patrolIndex + 1) % this.patrolPoints.length;
+                        }
+                    }
+                }
+                
+                if (dist < this.visionRange && this.hasLineOfSight(player.x, player.y)) {
+                    this.state = 'chase';
+                }
+                
+                if (noise > 50 && dist < this.hearingRange) {
+                    this.state = 'chase';
+                }
+            }
+            
+            moveToward(tx, ty) {
+                let dx = tx - this.x;
+                let dy = ty - this.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 4) return true;
+                
+                let speed = this.state === 'chase' ? this.chaseSpeed : this.speed;
+                dx = dx/dist * speed;
+                dy = dy/dist * speed;
+                
+                let testRect = this.getRect();
+                testRect.x = this.x + dx - this.w/2;
+                if (!this.collides(testRect)) this.x += dx;
+                
+                testRect = this.getRect();
+                testRect.y = this.y + dy - this.h/2;
+                if (!this.collides(testRect)) this.y += dy;
+                
+                return false;
+            }
+            
+            collides(r) {
+                for (let w of walls) if (this.overlap(r, w)) return true;
+                for (let f of furniture) if (this.overlap(r, f)) return true;
+                return false;
+            }
+            
+            hasLineOfSight(tx, ty) {
+                let dx = tx - this.x, dy = ty - this.y;
+                let dist = Math.sqrt(dx*dx+dy*dy);
+                let steps = Math.floor(dist / 8);
+                for (let i = 1; i < steps; i++) {
+                    let cx = this.x + dx*(i/steps), cy = this.y + dy*(i/steps);
+                    let cr = {x: cx-2, y: cy-2, w: 4, h: 4};
+                    for (let w of walls) if (this.overlap(cr, w)) return false;
+                }
+                return true;
+            }
+            
+            overlap(a, b) {
+                return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+            }
+        }
+        
+        // ==================== УРОВЕНЬ ====================
+        function createLevel() {
+            const W = canvas.width, H = canvas.height;
+            const m = 30; // отступ
+            
+            walls = [
+                {x: m, y: m, w: 15, h: H-m*2},
+                {x: W-m-15, y: m, w: 15, h: H-m*2},
+                {x: m, y: m, w: W-m*2, h: 15},
+                {x: m, y: H-m-15, w: W-m*2, h: 15},
+                // Перегородки
+                {x: m, y: H*0.48, w: W*0.35, h: 15},
+                {x: W*0.45, y: H*0.48, w: W*0.55-m, h: 15},
+                {x: W*0.5, y: m+15, w: 15, h: H*0.48-m-15},
+                {x: W*0.5, y: H*0.48+15, w: 15, h: H*0.52-m-30},
+            ];
+            
+            door = {x: W-35, y: H*0.42, w: 20, h: H*0.1};
+            
+            furniture = [
+                {x: m+30, y: m+30, w: W*0.12, h: 30},
+                {x: W*0.3, y: m+30, w: 30, h: W*0.1},
+                {x: W*0.6, y: m+30, w: W*0.1, h: W*0.1},
+                {x: m+30, y: H*0.6, w: W*0.15, h: 35},
+                {x: W*0.55, y: H*0.6, w: W*0.15, h: 40},
+                {x: W*0.7, y: H*0.35, w: 35, h: W*0.12},
+            ];
+            
+            let f = furniture[Math.floor(Math.random()*furniture.length)];
+            key = {
+                x: f.x + f.w/2 + (Math.random()-0.5)*f.w,
+                y: f.y + f.h/2 + (Math.random()-0.5)*f.h,
+                collected: false,
+                size: 7
+            };
+        }
+        
+        function init() {
+            player = new Player(canvas.width*0.35, canvas.height*0.55);
+            monster = new Monster(canvas.width*0.65, canvas.height*0.5);
+            noise = 0;
+            createLevel();
+            monster.patrolPoints = [
+                {x: canvas.width*0.2, y: canvas.height*0.25},
+                {x: canvas.width*0.4, y: canvas.height*0.2},
+                {x: canvas.width*0.6, y: canvas.height*0.35},
+                {x: canvas.width*0.75, y: canvas.height*0.6},
+                {x: canvas.width*0.3, y: canvas.height*0.7},
+            ];
+        }
+        
+        // ==================== ОТРИСОВКА ====================
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Пол
+            for (let x = 30; x < canvas.width-30; x += 35) {
+                for (let y = 30; y < canvas.height-30; y += 35) {
+                    ctx.fillStyle = ((Math.floor(x/35)+Math.floor(y/35))%2===0) ? '#2a2218' : '#1f1a12';
+                    ctx.fillRect(x, y, 35, 35);
+                }
+            }
+            
+            // Стены
+            for (let w of walls) {
+                ctx.fillStyle = '#3a2718';
+                ctx.fillRect(w.x, w.y, w.w, w.h);
+                ctx.strokeStyle = '#1a0f07';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(w.x, w.y, w.w, w.h);
+            }
+            
+            // Мебель
+            for (let f of furniture) {
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fillRect(f.x+3, f.y+3, f.w, f.h);
+                ctx.fillStyle = '#5c3a1e';
+                ctx.fillRect(f.x, f.y, f.w, f.h);
+                ctx.strokeStyle = '#2a1506';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(f.x, f.y, f.w, f.h);
+            }
+            
+            // Дверь
+            ctx.fillStyle = player.hasKey ? '#0a0' : '#6b0000';
+            ctx.fillRect(door.x, door.y, door.w, door.h);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(door.x, door.y, door.w, door.h);
+            ctx.fillStyle = '#fff';
+            ctx.font = `${Math.max(10, canvas.width/50)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('EXIT', door.x+door.w/2, door.y-4);
+            
+            // Ключ
+            if (!key.collected) {
+                let glow = Math.sin(Date.now()/300)*0.3+0.7;
+                ctx.fillStyle = `rgba(255,255,0,${glow*0.5})`;
+                ctx.beginPath();
+                ctx.arc(key.x, key.y, key.size+7, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(key.x, key.y, key.size, 0, Math.PI*2);
+                ctx.fill();
+            }
+            
+            // Монстр
+            let mx = monster.x, my = monster.y;
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath();
+            ctx.ellipse(mx, my, 13, 19, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.arc(mx, my-21, 12, 0, Math.PI*2);
+            ctx.fill();
+            
+            let glow = Math.abs(Math.sin(monster.eyeGlow))*0.5+0.5;
+            ctx.fillStyle = `rgba(255,0,0,${glow*0.5})`;
+            ctx.beginPath(); ctx.arc(mx-5, my-25, 8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(mx+5, my-25, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#f00';
+            ctx.beginPath(); ctx.arc(mx-5, my-25, 5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(mx+5, my-25, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(mx-5, my-25, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(mx+5, my-25, 2, 0, Math.PI*2); ctx.fill();
+            
+            // Игрок
+            let pr = player.getRect();
+            ctx.fillStyle = '#36c';
+            ctx.fillRect(pr.x, pr.y, pr.w, pr.h);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
+            
+            // Темнота
+            let grad = ctx.createRadialGradient(player.x, player.y, 30, player.x, player.y, 220);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.35, 'rgba(0,0,0,0.1)');
+            grad.addColorStop(0.7, 'rgba(0,0,0,0.5)');
+            grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // HUD
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(8, 8, canvas.width*0.35, 40);
+            ctx.fillStyle = '#fff';
+            ctx.font = `${Math.max(11, canvas.width/55)}px Arial`;
+            ctx.textAlign = 'left';
+            ctx.fillText(`Шум: ${Math.floor(noise)}% | Ключ: ${player.hasKey?'ДА':'НЕТ'}`, 16, 32);
+            
+            // Индикатор шума
+            ctx.fillStyle = '#333';
+            ctx.fillRect(8, 50, canvas.width*0.35, 8);
+            ctx.fillStyle = noise > 50 ? '#f00' : '#0f0';
+            ctx.fillRect(8, 50, canvas.width*0.35*(noise/100), 8);
+        }
+        
+        // ==================== ИГРОВОЙ ЦИКЛ ====================
+        function update() {
+            if (gameState !== 'playing') return;
+            
+            player.move();
+            
+            if (!key.collected) {
+                let d = Math.sqrt((player.x-key.x)**2 + (player.y-key.y)**2);
+                if (d < 22) {
+                    key.collected = true;
+                    player.hasKey = true;
+                }
+            }
+            
+            if (player.hasKey) {
+                let dr = {x: door.x-8, y: door.y, w: door.w+16, h: door.h};
+                if (player.overlap(player.getRect(), dr)) {
+                    gameState = 'win';
+                }
+            }
+            
+            monster.update();
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            
+            const msg = document.getElementById('message');
+            const msgBig = document.getElementById('msgBig');
+            const msgSmall = document.getElementById('msgSmall');
+            
+            if (gameState === 'caught') {
+                msg.style.display = 'block';
+                msgBig.style.color = '#f00';
+                msgBig.textContent = 'ВЫ ПОЙМАНЫ!';
+                msgSmall.textContent = 'Нажмите ИГРАТЬ для перезапуска';
+            } else if (gameState === 'win') {
+                msg.style.display = 'block';
+                msgBig.style.color = '#0f0';
+                msgBig.textContent = 'ВЫ СБЕЖАЛИ!';
+                msgSmall.textContent = 'Нажмите ИГРАТЬ для новой игры';
+            } else {
+                msg.style.display = 'none';
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // ==================== УПРАВЛЕНИЕ ====================
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameState = 'playing';
+            init();
+        }
+        
+        // Джойстик
+        const joystickZone = document.getElementById('joystickZone');
+        const thumb = document.getElementById('joystickThumb');
+        const base = document.getElementById('joystickBase');
+        const maxDist = 40;
+        
+        function getJoystickPos(e) {
+            const touch = e.touches[0];
+            const rect = base.getBoundingClientRect();
+            return {
+                x: touch.clientX - rect.left - rect.width/2,
+                y: touch.clientY - rect.top - rect.height/2
+            };
+        }
+        
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickActive = true;
+            const pos = getJoystickPos(e);
+            const dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y);
+            const clampedDist = Math.min(dist, maxDist);
+            const angle = Math.atan2(pos.y, pos.x);
+            
+            joystickDX = Math.cos(angle) * (dist / maxDist);
+            joystickDY = Math.sin(angle) * (dist / maxDist);
+            
+            thumb.style.transform = `translate(calc(-50% + ${Math.cos(angle)*clampedDist}px), calc(-50% + ${Math.sin(angle)*clampedDist}px))`;
+            joystickId = e.touches[0].identifier;
+        });
+        
+        joystickZone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!joystickActive) return;
+            
+            for (let t of e.touches) {
+                if (t.identifier === joystickId) {
+                    const rect = base.getBoundingClientRect();
+                    const pos = {
+                        x: t.clientX - rect.left - rect.width/2,
+                        y: t.clientY - rect.top - rect.height/2
+                    };
+                    const dist = Math.sqrt(pos.x*pos.x + pos.y*pos.y);
+                    const clampedDist = Math.min(dist, maxDist);
+                    const angle = Math.atan2(pos.y, pos.x);
+                    
+                    joystickDX = Math.cos(angle) * (dist / maxDist);
+                    joystickDY = Math.sin(angle) * (dist / maxDist);
+                    
+                    thumb.style.transform = `translate(calc(-50% + ${Math.cos(angle)*clampedDist}px), calc(-50% + ${Math.sin(angle)*clampedDist}px))`;
+                }
+            }
+        });
+        
+        function resetJoystick() {
+            joystickActive = false;
+            joystickDX = 0;
+            joystickDY = 0;
+            joystickId = null;
+            thumb.style.transform = 'translate(-50%, -50%)';
+        }
+        
+        joystickZone.addEventListener('touchend', resetJoystick);
+        joystickZone.addEventListener('touchcancel', resetJoystick);
+        
+        // Кнопки
+        function setupBtn(id, pressVar) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                if (pressVar === 'run') runPressed = true;
+                if (pressVar === 'crouch') crouchPressed = true;
+                if (pressVar === 'interact') {
+                    if (!key.collected) {
+                        let d = Math.sqrt((player.x-key.x)**2 + (player.y-key.y)**2);
+                        if (d < 25) {
+                            key.collected = true;
+                            player.hasKey = true;
+                        }
+                    }
+                }
+            });
+            btn.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                if (pressVar === 'run') runPressed = false;
+                if (pressVar === 'crouch') crouchPressed = false;
+            });
+            btn.addEventListener('pointerleave', (e) => {
+                if (pressVar === 'run') runPressed = false;
+                if (pressVar === 'crouch') crouchPressed = false;
+            });
+        }
+        
+        setupBtn('btnRun', 'run');
+        setupBtn('btnCrouch', 'crouch');
+        setupBtn('btnInteract', 'interact');
+        
+        // Предотвращение зума
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+        document.addEventListener('gesturechange', (e) => e.preventDefault());
+        document.addEventListener('gestureend', (e) => e.preventDefault());
+        
+        // Кнопка ИГРАТЬ при перезапуске
+        document.querySelector('#startScreen .btn').addEventListener('click', startGame);
+        
+        // Показываем кнопку ИГРАТЬ при game over
+        setInterval(() => {
+            if (gameState === 'caught' || gameState === 'win') {
+                document.getElementById('startScreen').style.display = 'flex';
+                document.querySelector('#startScreen .btn').textContent = '🔄 ИГРАТЬ СНОВА';
+            }
+        }, 500);
+        
+        // ==================== ЗАПУСК ====================
+        init();
+        gameLoop();
+    </script>
+</body>
+</html>
