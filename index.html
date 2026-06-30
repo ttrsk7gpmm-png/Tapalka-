@@ -1,430 +1,590 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Crystal Clicker</title>
-
-<style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial,sans-serif;
-}
-
-body{
-    min-height:100vh;
-    overflow:hidden;
-    background:linear-gradient(
-        180deg,
-        #3d1a78 0%,
-        #6a3cc9 30%,
-        #ff7b54 100%
-    );
-    color:white;
-}
-
-.topbar{
-    display:flex;
-    justify-content:space-between;
-    padding:15px;
-    gap:10px;
-}
-
-.stat{
-    background:rgba(255,255,255,0.12);
-    backdrop-filter:blur(8px);
-    border-radius:18px;
-    padding:10px;
-    min-width:105px;
-    text-align:center;
-}
-
-.stat img{
-    width:28px;
-    height:28px;
-    object-fit:contain;
-}
-
-.center{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:48vh;
-}
-
-#crystal{
-    width:240px;
-    cursor:pointer;
-    transition:0.08s;
-    filter:
-        drop-shadow(0 0 15px #ffffff)
-        drop-shadow(0 0 35px #a855f7);
-}
-
-#crystal:active{
-    transform:scale(0.93);
-}
-
-.tap-text{
-    position:absolute;
-    font-size:22px;
-    font-weight:bold;
-    animation:floatUp 0.8s forwards;
-    pointer-events:none;
-}
-
-@keyframes floatUp{
-    from{
-        opacity:1;
-        transform:translateY(0);
-    }
-    to{
-        opacity:0;
-        transform:translateY(-80px);
-    }
-}
-
-.bottom{
-    position:absolute;
-    bottom:15px;
-    width:100%;
-    padding:15px;
-}
-
-.cards{
-    display:flex;
-    gap:10px;
-    overflow-x:auto;
-}
-
-.card{
-    min-width:180px;
-    background:rgba(255,255,255,0.15);
-    backdrop-filter:blur(10px);
-    border-radius:20px;
-    padding:12px;
-}
-
-.card button{
-    margin-top:8px;
-    width:100%;
-    border:none;
-    padding:8px;
-    border-radius:12px;
-    cursor:pointer;
-    font-weight:bold;
-}
-
-.actions{
-    display:flex;
-    gap:10px;
-    margin-bottom:10px;
-}
-
-.actions button{
-    flex:1;
-    border:none;
-    border-radius:16px;
-    padding:12px;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-.energybar{
-    width:100%;
-    height:12px;
-    background:rgba(255,255,255,0.2);
-    border-radius:20px;
-    overflow:hidden;
-    margin-top:8px;
-}
-
-.energyfill{
-    height:100%;
-    width:100%;
-    background:#5cff87;
-}
-
-h3{
-    margin-bottom:5px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="topbar">
-
-    <div class="stat">
-        <img src="IMG_0668.webp">
-        <div id="gold">0</div>
-        <small>Золото</small>
-    </div>
-
-    <div class="stat">
-        <div id="energyText">1000/1000</div>
-        <small>Энергия</small>
-
-        <div class="energybar">
-            <div class="energyfill" id="energyFill"></div>
-        </div>
-    </div>
-
-    <div class="stat">
-        <img src="IMG_0669.webp">
-        <div id="diamonds">0</div>
-        <small>Алмазы</small>
-    </div>
-
-</div>
-
-<div class="center">
-
-<img src="IMG_0667.webp" id="crystal">
-
-</div>
-
-<div class="bottom">
-
-<div class="actions">
-<button onclick="exchangeGold()">
-Обменять 10000 золота → 5 💎
-</button>
-
-<button onclick="dailyReward()">
-Ежедневный бонус
-</button>
-</div>
-
-<div class="cards">
-
-<div class="card">
-<h3>Сильный тап</h3>
-<p>+1 золото за тап</p>
-<p>Цена: <span id="tapCost">100</span></p>
-<button onclick="buyTapUpgrade()">
-Купить
-</button>
-</div>
-
-<div class="card">
-<h3>Автошахта</h3>
-<p>+1 золото/сек</p>
-<p>Цена: <span id="autoCost">500</span></p>
-<button onclick="buyAutoMine()">
-Купить
-</button>
-</div>
-
-<div class="card">
-<h3>Энергоблок</h3>
-<p>+250 энергии</p>
-<p>Цена: <span id="energyCost">1000</span></p>
-<button onclick="buyEnergyUpgrade()">
-Купить
-</button>
-</div>
-
-</div>
-</div>
-
-<script>
-
-let gold = Number(localStorage.getItem("gold")) || 0;
-let diamonds = Number(localStorage.getItem("diamonds")) || 0;
-
-let tapPower = Number(localStorage.getItem("tapPower")) || 1;
-
-let autoMine = Number(localStorage.getItem("autoMine")) || 0;
-
-let maxEnergy = Number(localStorage.getItem("maxEnergy")) || 1000;
-
-let energy = Number(localStorage.getItem("energy")) || maxEnergy;
-
-let tapCost = Number(localStorage.getItem("tapCost")) || 100;
-let autoCost = Number(localStorage.getItem("autoCost")) || 500;
-let energyCost = Number(localStorage.getItem("energyCost")) || 1000;
-
-function save(){
-localStorage.setItem("gold",gold);
-localStorage.setItem("diamonds",diamonds);
-localStorage.setItem("tapPower",tapPower);
-localStorage.setItem("autoMine",autoMine);
-localStorage.setItem("maxEnergy",maxEnergy);
-localStorage.setItem("energy",energy);
-localStorage.setItem("tapCost",tapCost);
-localStorage.setItem("autoCost",autoCost);
-localStorage.setItem("energyCost",energyCost);
-}
-
-function update(){
-
-document.getElementById("gold").innerText =
-Math.floor(gold);
-
-document.getElementById("diamonds").innerText =
-diamonds;
-
-document.getElementById("energyText").innerText =
-Math.floor(energy)+"/"+maxEnergy;
-
-document.getElementById("tapCost").innerText =
-tapCost;
-
-document.getElementById("autoCost").innerText =
-autoCost;
-
-document.getElementById("energyCost").innerText =
-energyCost;
-
-document.getElementById("energyFill").style.width =
-(energy/maxEnergy*100)+"%";
-
-save();
-}
-
-const crystal =
-document.getElementById("crystal");
-
-crystal.addEventListener("click",(e)=>{
-
-if(energy < 1) return;
-
-energy--;
-
-gold += tapPower;
-
-let text=document.createElement("div");
-text.className="tap-text";
-text.innerText="+"+tapPower;
-
-text.style.left=e.pageX+"px";
-text.style.top=e.pageY+"px";
-
-document.body.appendChild(text);
-
-setTimeout(()=>{
-text.remove();
-},800);
-
-update();
-
-});
-
-function exchangeGold(){
-
-if(gold < 10000){
-alert("Недостаточно золота");
-return;
-}
-
-gold -= 10000;
-diamonds += 5;
-
-update();
-}
-
-function buyTapUpgrade(){
-
-if(gold < tapCost){
-alert("Недостаточно золота");
-return;
-}
-
-gold -= tapCost;
-
-tapPower += 1;
-
-tapCost =
-Math.floor(tapCost*1.8);
-
-update();
-}
-
-function buyAutoMine(){
-
-if(gold < autoCost){
-alert("Недостаточно золота");
-return;
-}
-
-gold -= autoCost;
-
-autoMine += 1;
-
-autoCost =
-Math.floor(autoCost*2);
-
-update();
-}
-
-function buyEnergyUpgrade(){
-
-if(gold < energyCost){
-alert("Недостаточно золота");
-return;
-}
-
-gold -= energyCost;
-
-maxEnergy += 250;
-
-energy += 250;
-
-energyCost =
-Math.floor(energyCost*2);
-
-update();
-}
-
-function dailyReward(){
-
-let last=
-localStorage.getItem("dailyReward");
-
-let now=
-new Date().toDateString();
-
-if(last===now){
-alert("Сегодня бонус уже получен");
-return;
-}
-
-gold += 500;
-
-diamonds += 1;
-
-localStorage.setItem(
-"dailyReward",
-now
-);
-
-update();
-
-alert(
-"Получено: 500 золота и 1 алмаз"
-);
-}
-
-setInterval(()=>{
-
-energy += 4;
-
-if(energy > maxEnergy)
-energy = maxEnergy;
-
-gold += autoMine;
-
-update();
-
-},1000);
-
-update();
-
-</script>
-
-</body>
-</html>
+"""
+Granny Horror Game - Python/Pygame
+Управление: WASD - движение, E - взаимодействие, C - присесть, Shift - бег
+Цель: Найти ключ и выбраться через входную дверь
+"""
+import pygame
+import math
+import random
+from enum import Enum
+
+# Инициализация
+pygame.init()
+pygame.mixer.init()
+
+# Константы
+SCREEN_WIDTH = 1024
+SCREEN_HEIGHT = 768
+FPS = 60
+
+# Цвета
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (200, 0, 0)
+DARK_RED = (100, 0, 0)
+BLOOD_RED = (139, 0, 0)
+GRAY = (80, 80, 80)
+DARK_GRAY = (30, 30, 30)
+LIGHT_GRAY = (120, 120, 120)
+BROWN = (101, 67, 33)
+DARK_BROWN = (60, 40, 20)
+WOOD = (139, 90, 43)
+DARK_WOOD = (101, 67, 33)
+YELLOW = (255, 255, 0)
+DIM_YELLOW = (150, 150, 50)
+GREEN = (0, 255, 0)
+DARK_GREEN = (0, 100, 0)
+BLUE = (0, 100, 255)
+ORANGE = (255, 165, 0)
+
+# Состояния игры
+class GameState(Enum):
+    START = 1
+    PLAYING = 2
+    CAUGHT = 3
+    WIN = 4
+
+# Создание окна
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Granny Horror")
+clock = pygame.time.Clock()
+font_large = pygame.font.Font(None, 74)
+font_medium = pygame.font.Font(None, 48)
+font_small = pygame.font.Font(None, 32)
+
+class Player:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 20
+        self.height = 30
+        self.speed = 3
+        self.run_speed = 5
+        self.crouching = False
+        self.crouch_speed = 1.5
+        self.crouch_height = 15
+        self.has_key = False
+        
+    def get_rect(self):
+        if self.crouching:
+            return pygame.Rect(self.x - self.width//2, 
+                             self.y - self.crouch_height//2,
+                             self.width, self.crouch_height)
+        return pygame.Rect(self.x - self.width//2, self.y - self.height//2,
+                          self.width, self.height)
+
+class Monster:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 30
+        self.height = 40
+        self.speed = 2.5
+        self.patrol_points = []
+        self.current_target = 0
+        self.chase_speed = 4.5
+        self.state = "patrol"  # patrol, chase, search
+        self.search_timer = 0
+        self.search_target = None
+        self.vision_range = 350
+        self.hearing_range = 200
+        self.eye_glow_timer = 0
+        
+    def get_rect(self):
+        return pygame.Rect(self.x - self.width//2, self.y - self.height//2,
+                          self.width, self.height)
+    
+    def move_to(self, target_x, target_y, walls):
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = math.sqrt(dx*dx + dy*dy)
+        
+        if dist < 5:
+            return True
+            
+        speed = self.chase_speed if self.state == "chase" else self.speed
+        dx = dx/dist * speed
+        dy = dy/dist * speed
+        
+        new_rect = pygame.Rect(self.x + dx - self.width//2,
+                               self.y - self.height//2,
+                               self.width, self.height)
+        
+        # Проверка коллизий
+        for wall in walls:
+            if new_rect.colliderect(wall):
+                # Пробуем движение только по X
+                new_rect_x = pygame.Rect(self.x + dx - self.width//2,
+                                        self.y - self.height//2,
+                                        self.width, self.height)
+                if not new_rect_x.colliderect(wall):
+                    self.x += dx
+                # Пробуем движение только по Y
+                new_rect_y = pygame.Rect(self.x - self.width//2,
+                                        self.y + dy - self.height//2,
+                                        self.width, self.height)
+                if not new_rect_y.colliderect(wall):
+                    self.y += dy
+                return False
+        
+        self.x += dx
+        self.y += dy
+        return False
+
+class Furniture:
+    def __init__(self, x, y, width, height, color, name):
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = color
+        self.name = name
+        self.items = []
+        
+    def draw(self, surface, offset_x=0, offset_y=0):
+        pygame.draw.rect(surface, self.color, self.rect)
+        pygame.draw.rect(surface, WHITE, self.rect, 2)
+
+class Key:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.size = 10
+        self.collected = False
+        
+    def draw(self, surface):
+        if not self.collected:
+            pygame.draw.circle(surface, YELLOW, (int(self.x), int(self.y)), self.size)
+            pygame.draw.circle(surface, DIM_YELLOW, (int(self.x), int(self.y)), self.size-3)
+
+class Game:
+    def __init__(self):
+        self.state = GameState.START
+        self.player = Player(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
+        self.monster = Monster(300, 300)
+        self.walls = []
+        self.furniture = []
+        self.key = None
+        self.door = None
+        self.noise_meter = 0
+        self.darkness_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.darkness_surface.set_alpha(200)
+        self.create_house()
+        
+    def create_house(self):
+        # Стены дома
+        wall_thickness = 20
+        
+        # Внешние стены
+        self.walls = [
+            # Левая стена
+            pygame.Rect(50, 50, wall_thickness, SCREEN_HEIGHT-100),
+            # Правая стена
+            pygame.Rect(SCREEN_WIDTH-70, 50, wall_thickness, SCREEN_HEIGHT-100),
+            # Верхняя стена
+            pygame.Rect(50, 50, SCREEN_WIDTH-100, wall_thickness),
+            # Нижняя стена
+            pygame.Rect(50, SCREEN_HEIGHT-70, SCREEN_WIDTH-100, wall_thickness),
+            
+            # Внутренние стены - создают комнаты
+            # Горизонтальная стена (создает верхнюю и нижнюю комнаты)
+            pygame.Rect(50, 400, 300, wall_thickness),
+            pygame.Rect(400, 400, SCREEN_WIDTH-470, wall_thickness),
+            
+            # Вертикальная стена (создает левые и правые комнаты)
+            pygame.Rect(500, 70, wall_thickness, 330),
+            pygame.Rect(500, 420, wall_thickness, SCREEN_HEIGHT-490),
+        ]
+        
+        # Дверь выхода
+        self.door = pygame.Rect(SCREEN_WIDTH-80, SCREEN_HEIGHT//2-30, 30, 60)
+        
+        # Мебель
+        self.furniture = [
+            Furniture(100, 100, 80, 40, BROWN, "Стол"),
+            Furniture(250, 100, 40, 80, BROWN, "Шкаф"),
+            Furniture(600, 100, 60, 60, DARK_BROWN, "Тумба"),
+            Furniture(150, 500, 100, 40, WOOD, "Кровать"),
+            Furniture(600, 500, 80, 50, DARK_WOOD, "Диван"),
+            Furniture(350, 500, 60, 60, GRAY, "Холодильник"),
+            Furniture(750, 300, 50, 100, DARK_BROWN, "Книжный шкаф"),
+        ]
+        
+        # Ключ (спрятан в случайном месте)
+        key_furniture = random.choice(self.furniture)
+        self.key = Key(key_furniture.rect.centerx + random.randint(-20, 20),
+                      key_furniture.rect.centery + random.randint(-20, 20))
+        
+        # Точки патрулирования монстра
+        self.monster.patrol_points = [
+            (200, 200),
+            (400, 200),
+            (400, 500),
+            (200, 500),
+            (600, 300),
+            (700, 600),
+            (300, 600),
+        ]
+        
+    def handle_input(self):
+        keys = pygame.key.get_pressed()
+        
+        # Определение скорости
+        speed = self.player.speed
+        if keys[pygame.K_LSHIFT]:
+            speed = self.player.run_speed
+            self.noise_meter = min(100, self.noise_meter + 2)
+        elif keys[pygame.K_c]:
+            self.player.crouching = True
+            speed = self.player.crouch_speed
+            self.noise_meter = max(0, self.noise_meter - 0.5)
+        else:
+            self.player.crouching = False
+            self.noise_meter = max(0, self.noise_meter - 0.3)
+        
+        # Движение
+        dx, dy = 0, 0
+        if keys[pygame.K_a]:
+            dx = -1
+        if keys[pygame.K_d]:
+            dx = 1
+        if keys[pygame.K_w]:
+            dy = -1
+        if keys[pygame.K_s]:
+            dy = 1
+            
+        # Нормализация диагонального движения
+        if dx != 0 and dy != 0:
+            dx *= 0.707
+            dy *= 0.707
+            
+        # Проверка коллизий со стенами
+        new_rect = self.player.get_rect()
+        new_rect.x += dx * speed
+        for wall in self.walls:
+            if new_rect.colliderect(wall):
+                dx = 0
+                break
+                
+        new_rect = self.player.get_rect()
+        new_rect.y += dy * speed
+        for wall in self.walls:
+            if new_rect.colliderect(wall):
+                dy = 0
+                break
+                
+        # Проверка коллизий с мебелью
+        new_rect = self.player.get_rect()
+        new_rect.x += dx * speed
+        for furn in self.furniture:
+            if new_rect.colliderect(furn.rect):
+                dx = 0
+                break
+                
+        new_rect = self.player.get_rect()
+        new_rect.y += dy * speed
+        for furn in self.furniture:
+            if new_rect.colliderect(furn.rect):
+                dy = 0
+                break
+        
+        self.player.x += dx * speed
+        self.player.y += dy * speed
+        
+        # Взаимодействие с предметами
+        if keys[pygame.K_e]:
+            self.interact()
+            
+    def interact(self):
+        player_rect = self.player.get_rect()
+        
+        # Проверка ключа
+        if self.key and not self.key.collected:
+            key_rect = pygame.Rect(self.key.x - self.key.size,
+                                  self.key.y - self.key.size,
+                                  self.key.size * 2, self.key.size * 2)
+            if player_rect.colliderect(key_rect):
+                self.key.collected = True
+                self.player.has_key = True
+                
+        # Проверка двери
+        if self.player.has_key and player_rect.colliderect(self.door):
+            self.state = GameState.WIN
+            
+    def update_monster(self):
+        player_rect = self.player.get_rect()
+        monster_rect = self.monster.get_rect()
+        
+        # Проверка столкновения с игроком
+        if player_rect.colliderect(monster_rect):
+            self.state = GameState.CAUGHT
+            return
+            
+        # Определение поведения монстра
+        dist_to_player = math.sqrt((self.player.x - self.monster.x)**2 + 
+                                  (self.player.y - self.monster.y)**2)
+        
+        if self.monster.state == "chase":
+            # Монстр преследует игрока
+            self.monster.move_to(self.player.x, self.player.y, 
+                               self.walls + [f.rect for f in self.furniture])
+            
+            # Проверка, потерял ли монстр игрока из виду
+            if dist_to_player > self.monster.vision_range:
+                self.monster.state = "search"
+                self.monster.search_target = (self.player.x, self.player.y)
+                self.monster.search_timer = 180  # 3 секунды поиска
+                
+        elif self.monster.state == "search":
+            if self.monster.search_timer > 0:
+                self.monster.search_timer -= 1
+                if self.monster.search_target:
+                    arrived = self.monster.move_to(self.monster.search_target[0],
+                                                 self.monster.search_target[1],
+                                                 self.walls + [f.rect for f in self.furniture])
+                    if arrived:
+                        self.monster.search_target = None
+            else:
+                self.monster.state = "patrol"
+                
+        elif self.monster.state == "patrol":
+            # Патрулирование по точкам
+            if self.monster.patrol_points:
+                target = self.monster.patrol_points[self.monster.current_target]
+                arrived = self.monster.move_to(target[0], target[1],
+                                             self.walls + [f.rect for f in self.furniture])
+                if arrived:
+                    self.monster.current_target = (self.monster.current_target + 1) % len(self.monster.patrol_points)
+        
+        # Проверка, видит ли монстр игрока
+        if dist_to_player < self.monster.vision_range:
+            # Проверка линии прямой видимости
+            can_see = True
+            steps = int(dist_to_player / 10)
+            for i in range(steps):
+                check_x = self.monster.x + (self.player.x - self.monster.x) * (i/steps)
+                check_y = self.monster.y + (self.player.y - self.monster.y) * (i/steps)
+                check_rect = pygame.Rect(check_x - 2, check_y - 2, 4, 4)
+                
+                for wall in self.walls:
+                    if check_rect.colliderect(wall):
+                        can_see = False
+                        break
+                        
+            if can_see:
+                self.monster.state = "chase"
+        
+        # Проверка шума
+        if self.noise_meter > 50 and dist_to_player < self.monster.hearing_range:
+            self.monster.state = "chase"
+            
+    def draw_darkness(self):
+        """Создание эффекта темноты"""
+        self.darkness_surface.fill(BLACK)
+        
+        # Свет вокруг игрока (как фонарик)
+        for radius in range(200, 0, -5):
+            alpha = int(255 * (1 - radius/200))
+            pygame.draw.circle(self.darkness_surface, (0, 0, 0, alpha),
+                             (int(self.player.x), int(self.player.y)), radius)
+        
+        self.darkness_surface.set_colorkey(BLACK)
+        screen.blit(self.darkness_surface, (0, 0))
+        
+    def draw_monster(self):
+        """Рисование монстра с красными глазами"""
+        monster_rect = self.monster.get_rect()
+        
+        # Тело монстра
+        pygame.draw.ellipse(screen, DARK_GRAY, monster_rect)
+        
+        # Голова
+        head_rect = pygame.Rect(monster_rect.centerx - 15,
+                               monster_rect.top - 10, 30, 25)
+        pygame.draw.ellipse(screen, (60, 60, 60), head_rect)
+        
+        # Красные глаза (свечение)
+        self.monster.eye_glow_timer += 0.1
+        glow = abs(math.sin(self.monster.eye_glow_timer)) * 100
+        
+        # Левый глаз
+        eye_left = (head_rect.centerx - 8, head_rect.centery - 5)
+        pygame.draw.circle(screen, RED, eye_left, 6)
+        pygame.draw.circle(screen, (255, glow, glow), eye_left, 4)
+        pygame.draw.circle(screen, BLACK, eye_left, 2)
+        
+        # Правый глаз
+        eye_right = (head_rect.centerx + 8, head_rect.centery - 5)
+        pygame.draw.circle(screen, RED, eye_right, 6)
+        pygame.draw.circle(screen, (255, glow, glow), eye_right, 4)
+        pygame.draw.circle(screen, BLACK, eye_right, 2)
+        
+    def draw(self):
+        screen.fill(DARK_GRAY)
+        
+        # Рисование пола
+        for x in range(0, SCREEN_WIDTH, 50):
+            for y in range(0, SCREEN_HEIGHT, 50):
+                pygame.draw.rect(screen, (50, 40, 30), (x, y, 50, 50))
+                pygame.draw.rect(screen, (45, 35, 25), (x, y, 50, 50), 1)
+        
+        # Рисование стен
+        for wall in self.walls:
+            pygame.draw.rect(screen, DARK_BROWN, wall)
+            pygame.draw.rect(screen, BLACK, wall, 3)
+            
+        # Рисование двери
+        if self.door:
+            door_color = GREEN if self.player.has_key else BLOOD_RED
+            pygame.draw.rect(screen, door_color, self.door)
+            pygame.draw.rect(screen, BLACK, self.door, 3)
+            text = font_small.render("EXIT", True, WHITE)
+            screen.blit(text, (self.door.x + 5, self.door.y + 20))
+            
+        # Рисование мебели
+        for furn in self.furniture:
+            furn.draw(screen)
+            # Тень от мебели
+            shadow_rect = furn.rect.copy()
+            shadow_rect.x += 5
+            shadow_rect.y += 5
+            pygame.draw.rect(screen, BLACK, shadow_rect)
+            # Сама мебель
+            pygame.draw.rect(screen, furn.color, furn.rect)
+            pygame.draw.rect(screen, BLACK, furn.rect, 2)
+            
+        # Рисование ключа
+        if self.key and not self.key.collected:
+            self.key.draw(screen)
+            
+        # Рисование монстра
+        self.draw_monster()
+        
+        # Рисование игрока
+        player_rect = self.player.get_rect()
+        pygame.draw.rect(screen, BLUE, player_rect)
+        pygame.draw.rect(screen, WHITE, player_rect, 2)
+        
+        # Эффект темноты
+        self.draw_darkness()
+        
+        # Шкала шума
+        noise_text = font_small.render(f"Шум: {int(self.noise_meter)}%", True, WHITE)
+        screen.blit(noise_text, (10, 10))
+        pygame.draw.rect(screen, WHITE, (10, 40, 100, 10))
+        noise_color = GREEN if self.noise_meter < 50 else RED
+        pygame.draw.rect(screen, noise_color, (10, 40, self.noise_meter, 10))
+        
+        # Индикатор ключа
+        key_text = font_small.render("Ключ: " + ("Да" if self.player.has_key else "Нет"), True, WHITE)
+        screen.blit(key_text, (10, 60))
+        
+        # Подсказки управления
+        hints = [
+            "WASD - движение",
+            "Shift - бег (шумно)",
+            "C - присесть (тихо)",
+            "E - взаимодействие"
+        ]
+        for i, hint in enumerate(hints):
+            hint_text = font_small.render(hint, True, LIGHT_GRAY)
+            screen.blit(hint_text, (SCREEN_WIDTH - 200, 10 + i * 25))
+            
+    def draw_start_screen(self):
+        screen.fill(BLACK)
+        
+        title = font_large.render("GRANNY HORROR", True, RED)
+        title_rect = title.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//3))
+        screen.blit(title, title_rect)
+        
+        start_text = font_medium.render("Нажмите ENTER чтобы начать", True, WHITE)
+        start_rect = start_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+        
+        # Мигание текста
+        if pygame.time.get_ticks() % 1000 < 500:
+            screen.blit(start_text, start_rect)
+            
+        controls = [
+            "Управление:",
+            "WASD - Движение",
+            "SHIFT - Бег (создает шум)",
+            "C - Присесть (тихо)",
+            "E - Взаимодействие",
+            "",
+            "Найдите ключ и доберитесь до зеленой двери!",
+            "Остерегайтесь монстра с красными глазами!"
+        ]
+        
+        for i, line in enumerate(controls):
+            text = font_small.render(line, True, GRAY)
+            text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 80 + i * 25))
+            screen.blit(text, text_rect)
+            
+    def draw_game_over(self):
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(200)
+        overlay.fill(BLACK)
+        screen.blit(overlay, (0, 0))
+        
+        text = font_large.render("ВЫ ПОЙМАНЫ!", True, RED)
+        text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
+        screen.blit(text, text_rect)
+        
+        restart = font_medium.render("Нажмите ENTER для перезапуска", True, WHITE)
+        restart_rect = restart.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50))
+        screen.blit(restart, restart_rect)
+        
+    def draw_win_screen(self):
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(200)
+        overlay.fill(BLACK)
+        screen.blit(overlay, (0, 0))
+        
+        text = font_large.render("ВЫ СБЕЖАЛИ!", True, GREEN)
+        text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
+        screen.blit(text, text_rect)
+        
+        restart = font_medium.render("Нажмите ENTER для новой игры", True, WHITE)
+        restart_rect = restart.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50))
+        screen.blit(restart, restart_rect)
+        
+    def reset(self):
+        self.__init__()
+        
+def main():
+    game = Game()
+    running = True
+    
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    if game.state == GameState.START:
+                        game.state = GameState.PLAYING
+                    elif game.state in [GameState.CAUGHT, GameState.WIN]:
+                        game.reset()
+                        game.state = GameState.PLAYING
+                        
+        if game.state == GameState.PLAYING:
+            game.handle_input()
+            game.update_monster()
+            game.draw()
+            
+        elif game.state == GameState.START:
+            game.draw_start_screen()
+            
+        elif game.state == GameState.CAUGHT:
+            game.draw()
+            game.draw_game_over()
+            
+        elif game.state == GameState.WIN:
+            game.draw()
+            game.draw_win_screen()
+            
+        pygame.display.flip()
+        clock.tick(FPS)
+        
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
